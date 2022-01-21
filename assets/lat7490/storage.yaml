@@ -1,0 +1,139 @@
+#cloud-config
+merge_how:
+  - name: list
+    settings: [append]
+  - name: dict
+    settings: [no_replace, recurse_list]
+
+# Setup for Latitude 7490 with 477GiB Sata SSD:
+# - UEFI, 512M
+# - BOOT, 1024M
+# - CRYPT, 312G
+#    * root, 295G
+#    * swap, remainder
+# - WIN partition, remainder
+#
+# ref: https://curtin.readthedocs.io/en/latest/topics/storage.html
+# M, G are Mebibyte, Gibibyte.
+autoinstall:
+  storage:
+    config:
+      #####   Disk   ##########################################################
+      # Disk, serial takes precedence over path.
+      - id: sda
+        type: disk
+        ptable: gpt
+        serial: ${DISK_ID_SERIAL}
+        # wwn: 
+        path: /dev/sda
+        name: maindisk
+        wipe: superblock
+        preserve: false
+        grub_device: false
+      #####   EFI partition   #################################################
+      - id: sda1
+        type: partition
+        number: 1
+        name: bootefi-partition
+        size: 512M
+        device: sda
+        wipe: superblock
+        preserve: false
+        grub_device: true
+        flag: boot
+      - id: sda1-bootefi
+        type: format
+        volume: sda1
+        fstype: fat32
+        uuid: C12A7328-F81F-11D2-BA4B-00A0C93EC93B
+        preserve: false
+        label: BOOTEFI
+      #####   BOOT partition   ################################################
+      - id: sda2
+        type: partition
+        number: 2
+        name: boot-partition
+        size: 1G
+        device: sda
+        wipe: superblock
+        preserve: false
+        grub_device: false
+      - id: sda2-boot
+        type: format
+        volume: sda2
+        fstype: ext4
+        preserve: false
+        label: BOOT
+      #####   Crypt container   ###############################################
+      - id: sda3
+        type: partition
+        number: 3
+        name: crypt-partition
+        size: 312G
+        device: sda
+        wipe: superblock
+        preserve: false
+        grub_device: false
+      - id: crypt-container
+        type: dm_crypt
+        volume: sda3
+        dm_name: sda_crypt
+        key: ${BACKUP_CRYPT_KEY}
+        preserve: false
+      #####   Win partition   #################################################
+      - id: sda4
+        type: partition
+        number: 4
+        name: win-partition
+        size: -1
+        device: sda
+        wipe: superblock
+        preserve: false
+      #####   In Crypt container: LVM volume group   ##########################
+      - id: volgroup0
+        type: lvm_volgroup
+        name: vg0
+        devices: [crypt-container]
+      ###    ubuntu-lv
+      - id: lv-root
+        type: lvm_partition
+        name: root
+        volgroup: volgroup0
+        size: 295G
+        wipe: superblock
+        preserve: false
+      - id: root-fs
+        type: format
+        volume: lv-root
+        fstype: ext4
+        preserve: false
+      ####    ubuntu-swap
+      - id: lv-swap
+        type: lvm_partition
+        name: swap
+        volgroup: volgroup0
+        size: -1
+        wipe: superblock
+        preserve: false
+      - id: swap-fs
+        type: format
+        volume: lv-swap
+        fstype: swap
+        # uuid: 0657FD6D-A4AB-43C4-84E5-0933C84B4F4F
+      #####   Mount everything   ##############################################
+      - id: root-mount
+        path: /
+        type: mount
+        device: root-fs
+      - id: boot-mount
+        path: /boot
+        type: mount
+        device: sda2-boot
+      - id: bootefi-mount
+        path: /boot/efi
+        type: mount
+        device: sda1-bootefi
+      - id: swap-mount
+        path: none
+        type: mount
+        device: swap-fs

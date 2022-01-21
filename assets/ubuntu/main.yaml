@@ -1,0 +1,55 @@
+#cloud-config
+merge_how:
+  - name: list
+    settings: [append]
+  - name: dict
+    settings: [recurse_array]
+
+autoinstall:
+  version: 1
+
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+
+  refresh_installer:
+    update: yes
+    # channel:
+
+  # NOTE(2021-12-17): https mirror (https://ubuntu.ethz.ch/ubuntu) failed.
+  apt:
+    geoip: true
+    preserve_sources_list: false
+    primary:
+      - arches: [amd64, i386]
+        uri: http://ubuntu.ethz.ch/ubuntu/
+        # Per default uses this, init7 Winterthur.
+        # uri: http://ch.archive.ubuntu.com/ubuntu
+      - arches: [default]
+        uri: http://ports.ubuntu.com/ubuntu-ports
+
+  user-data:
+    timezone: Europe/Zurich
+    # update the apt database and upgrade the instance on first boot.
+    # https://cloudinit.readthedocs.io/en/latest/topics/examples.html#update-apt-database-on-first-boot
+    package_update: true
+    package_upgrade: true
+
+  #### Install packages
+  # Per cloud-init, if packages are selected, it will apt-get update before
+  # installation.
+  # (https://cloudinit.readthedocs.io/en/latest/topics/examples.html#install-arbitrary-packages).
+  packages:
+    # Unfortunately, this section does not support `--no-install-recommends`.
+    # Alternative is to use it in late-commands with:
+    # `curtin in-target -- apt-get -y install --no-install-recommends ...`
+    - ubuntu-desktop-minimal
+
+  late-commands:
+    # - netplan apply
+    # - curtin in-target -- apt-get -y install --no-install-recommends ubuntu-desktop-minimal
+    - cp /cdrom/autoinstall/install_poetry.sh /target/usr/local/bin && chmod a+x /target/usr/local/bin/install_poetry.sh
+    # The next two lines only work, if ubuntu-desktop-minimal is installed.
+    - mv /target/usr/libexec/gnome-initial-setup /target/usr/libexec/gnome-initial-setup-orig
+    - cp /cdrom/autoinstall/initial-login.sh /target/usr/libexec/gnome-initial-setup && chmod a+x /target/usr/libexec/gnome-initial-setup
+    - cp /cdrom/autoinstall/setup_yubikey_LUKS.sh /target/usr/local/bin && chmod +x /target/usr/local/bin/setup_yubikey_LUKS.sh

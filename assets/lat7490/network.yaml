@@ -1,0 +1,67 @@
+#cloud-config
+merge_how:
+  - name: list
+    settings: [append]
+  - name: dict
+    settings: [no_replace, recurse_list]
+
+autoinstall:
+  # `interactive-sections` allow to manually enter parameters during
+  # installation. Adding `network` allows to setup the Wifi.
+  # Issue: `packages` and `late-commands` did not execute. Late-commands
+  #        appears as an entry in the debug log, but not the actual commands.
+  # interactive-sections:
+  #   - network
+
+  early-commands:
+    # It seems that initially wpasupplicant is not installed, and no wifi
+    # connection can be established. However, wpasupplicant seems to be part
+    # of the installer. This is for the installer, not the target system.
+    - apt-get -y install wpasupplicant
+
+
+  #### Define the network configuration.
+  # Leave out the renderer: let the default renderer be used during
+  # installation (server usually uses networkd, as network-manager is not part
+  # of the installer and cannot be installed without internet connection), but
+  # use `netplan set renderer=NetworkManager` in the late-commands to use that in
+  # the target system.
+  network:
+    version: 2
+    # renderer: NetworkManager
+    # renderer: networkd
+    ethernets:
+      ${IFACE_ETH1}:
+        dhcp4: true
+        # dhcp6: true
+    wifis:
+      ${IFACE_WIFI1}:
+        dhcp4: true
+        # dhcp6: true
+        access-points:
+          "${WIFI1_SSID}":
+            password: "${WIFI1_PW}"
+          "${WIFI2_SSID}":
+            password: "${WIFI2_PW}"
+
+  late-commands:
+    # For the target system, use NetworkManager to manage all interfaces.
+    # network-manager is installed as a dependency in `ubuntu-desktop-minimal`,
+    # make sure this package is installed either in main.yaml, or add it in
+    # this file within a first sublevel `packages:`. Disable networkd (socket
+    # can trigger service, therefore switch off both).
+    - curtin in-target -- netplan set renderer=NetworkManager
+    - curtin in-target -- systemctl stop systemd-networkd.socket
+    - curtin in-target -- systemctl stop systemd-networkd.service
+    - curtin in-target -- systemctl disable systemd-networkd
+    - curtin in-target -- netplan apply
+
+  ssh:
+  # Desktop should not be an ssh-server.
+    install-server: false
+    allow-pw: false
+    authorized-keys: []
+
+  user-data:
+    disable_root: true
+    disable_root_opts: no-port-forwarding,no-agent-forwarding,no-X11-forwarding

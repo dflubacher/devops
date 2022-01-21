@@ -1,0 +1,16 @@
+#cloud-config
+merge_how:
+  - name: list
+    settings: [append]
+  - name: dict
+    settings: [no_replace, recurse_list]
+
+autoinstall:
+  #### Host and account setup.
+  # Autoinstall only allows for one initial user, but user-data might be used
+  # to setup multiple users (prefer to use Ansible for this).
+  identity:
+    hostname: ${OS_HOSTNAME}
+    username: ${USER1_USERNAME}
+    realname: ${USER1_REALNAME}
+    password: ${USER1_PW_CRYPTED}

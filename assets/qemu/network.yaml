@@ -1,0 +1,43 @@
+#cloud-config
+merge_how:
+  - name: list
+    settings: [append]
+  - name: dict
+    settings: [no_replace, recurse_list]
+
+autoinstall:
+  # interactive-sections:
+  #   - network
+
+  #### Define the network configuration.
+  # Leave out the renderer: let the default renderer be used during
+  # installation (server usually uses networkd, as network-manager is not part
+  # of the installer and cannot be installed without internet connection), but
+  # use `netplan set renderer=NetworkManager` in the late-commands to use that in
+  # the target system.
+  network:
+    version: 2
+    # renderer: NetworkManager
+    # renderer: networkd
+    ethernets:
+      ${IFACE_ETH1}:
+        dhcp4: true
+        # dhcp6: true
+
+  late-commands:
+    # Set NetworkManager to be used in the target system.
+    - curtin in-target -- netplan set renderer=NetworkManager
+    - curtin in-target -- systemctl stop systemd-networkd.socket
+    - curtin in-target -- systemctl stop systemd-networkd.service
+    - curtin in-target -- systemctl disable systemd-networkd
+    - curtin in-target -- netplan apply
+
+
+  ssh:
+    allow-pw: false
+    authorized-keys: []
+    install-server: false
+
+  user-data:
+    disable_root: true
+    disable_root_opts: no-port-forwarding,no-agent-forwarding,no-X11-forwarding
