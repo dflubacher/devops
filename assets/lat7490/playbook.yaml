@@ -9,6 +9,9 @@
 #   4. poetry run ansible-playbook -i hosts.ini --ask-become-pass playbook.yaml
 # -----------------------------------------------------------------------------
 
+
+# TODO: learn more about Ansible and set up proper Role/Handlers/Task
+#       organization.
 ---
 - hosts: lat7490
   connection: local
@@ -59,7 +62,7 @@
     #     question: locales/locales_to_be_generated
     #     value: en_US.UTF-8 UTF-8, de_CH.UTF-8 UTF-8
     #     vtype: multiselect
-    
+
     # - name: Set default locale to en_US.UTF-8
     #   become: true
     #   ansible.builtin.debconf:
@@ -111,6 +114,7 @@
           - gparted
           - tmux
           - vlc
+          - whois
           - keepass2
           - yubikey-luks
         state: latest
@@ -183,7 +187,7 @@
     # Added qemu-efi and OVMF to have UEFI support, virt-manager to have a GUI,
     # and libvirt-dev as it was required for the vagrant plugin to get
     # installed. Added cloud-image-utils for merging cloud-init configuration
-    # files.
+    # files. libosinfo for os-variant queries.
     - name: Install KVM for Ubuntu
       become: true
       apt:
@@ -198,6 +202,7 @@
           - virt-manager
           - cloud-image-utils
           - xorriso
+          - libosinfo-bin
         state: latest
         install_recommends: no
 

@@ -1,26 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Create Ubuntu installer using autoinstall. (20.04 LTS)
-# This script
-#   1. downloads an Ubuntu 20.04 server iso.
-#   2. copies autoinstall/cloud-init files into the installer (./autoinstall).
-#   3. copies additional customized scripts into the installer (./autoinstall)
-#      for use in the target system. These files can be used in late- and
-#      early-commands to use them during installation or afterwards in the
-#      running target system.
-#   4. Repacks the iso and stores it in /tmp.
-# The folder where this installer script is located contains standard setup
-# files (e.g. main.yaml with apt configuration, timezone etc.), the asset
-# specific folders contain files with asset specific instructions (e.g.
-# storage, network, etc.).
-#
+# Debian installer with preseed file.
+# This script downloads a debian installer file and creates an iso file that
+# can be extracted to a bootable thumb drive.
 # -----------------------------------------------------------------------------
+
 
 # USAGE:
 #     /path/to/modify-installer.sh --vars_file=path/to/asset/specific/variable/file
 #
 #     Required argument:
-#     -vars_file: path of file with variables to replace in autoinstall files
+#     -vars_file: path of file with variables to replace in preseed files
 #                 and files to copied into the iso for custom commands.
 #                 The path must be relative to user's working directory.
 
@@ -28,39 +18,36 @@
 #    - bash >4.3 (no check)
 #    - sudo privileges
 #    - xorriso apt package (unpack and pack iso)
-#    - cloud-image-utils apt package (combine autoinstall yaml files)
 
 # References:
-# - https://ubuntu.com/server/docs/install/autoinstall
-# - https://cloudinit.readthedocs.io/en/latest/topics/datasources/nocloud.html
+#   - https://gist.github.com/zuzzas/a1695344162ac7fa124e15855ce0768f
+#   - https://wiki.debian.org/DebianInstaller/Preseed/EditIso
+#   - https://github.com/coreprocess/linux-unattended-installation
 
-# TODO: - error handling and file paths checks.
-#       - syntax, lower-case for local, all caps for exported
-#         variables/constants.
 
 ###   Define some variables   #################################################
-declare -a AUTOINSTALL_FILES_MERGED
+declare -a PRESEED_FILES_MERGED
 declare -a ADDITIONAL_FILES_MERGED
 
 declare -r SCRIPT_DIR=$(dirname "$0") > /dev/null
 
 # URL of the original installer.
-# ISO_WEBLINK="http://releases.ubuntu.csg.uzh.ch/ubuntu/focal/ubuntu-20.04.3-desktop-amd64.iso"
-ISO_WEBLINK="https://cdimage.ubuntu.com/ubuntu-server/focal/daily-live/current/focal-live-server-amd64.iso"
-# ISO_WEBLINK="http://releases.ubuntu.csg.uzh.ch/ubuntu/focal/ubuntu-20.04.3-live-server-amd64.iso"
+# The Wifi usually needs some firmware (Debian calls it non-free firmware),
+# therefore use the netinstaller with some firmware.
+# See https://wiki.debian.org/Firmware
+ISO_WEBLINK="https://cdimage.debian.org/cdimage/unofficial/non-free/cd-including-firmware/current/amd64/iso-cd/firmware-11.2.0-amd64-netinst.iso"
+# ISO_WEBLINK="https://cdimage.debian.org/cdimage/unofficial/non-free/cd-including-firmware/11.2.0+nonfree/amd64/iso-cd/firmware-11.2.0-amd64-netinst.iso"
 
-# Working directories and output.
-ISO_ORIG=/tmp/ubuntu-amd64.iso
+ISO_ORIG=/tmp/debian-amd64.iso
 # If ISO_FILES structure is changed, check clean up condition in main().
-ISO_FILES=$(mktemp --tmpdir -d "ubuntu-amd64-files_XXX")
-ISO_NEW=/tmp/ubuntu-amd64-autoinstall.iso
-TMP_SCRATCH_DIR=$(mktemp --tmpdir -d "ubuntu-scratch-files_XXX")
+ISO_FILES=$(mktemp --tmpdir -d "debian-amd64-files_XXX")
+ISO_NEW=/tmp/debian-amd64-preseed.iso
+TMP_SCRATCH_DIR=$(mktemp --tmpdir -d "debian-scratch-files_XXX")
 MBR_TEMPLATE=/tmp/isohdpfx.bin
 
 # http://www.gnu.org/savannah-checkouts/gnu/bash/manual/bash.html#Shell-Parameter-Expansion
 VARS_FILE=${VARS_FILE:-"assets/qemu/vars.env"}
 VARS_FILE_DEFAULT=${VARS_FILE_DEFAULT:-"./vars.env"}
-
 
 
 ###   Define sub-functions   ##################################################
@@ -141,7 +128,7 @@ main() {
    # Clean up if necessary:
    [ -f ${ISO_NEW} ] && sudo rm -rf ${ISO_NEW}
    # Remove previous ISO_FILES directory:
-   sudo find /tmp -type d -name "ubuntu-amd64-files_*" -exec rm -r {} \; -prune
+   sudo find /tmp -type d -name "debian-amd64-files_*" -exec rm -r {} \; -prune
 
    # --------------------------------------------------------------------------
    # VARS default
@@ -152,43 +139,49 @@ main() {
    # relative to this directory.
    ! [ ${non_default} ] || pushd ${SCRIPT_DIR} > /dev/null
 
-   # The following files are part of autoinstall yaml files that are supposed
-   # not to be changed.
-   # The main.yaml contains timezone, apt configuration and packages, the
+   # The following files are part of preseed files that are supposed not to be
+   # changed.
+   # The main.cfg contains timezone, apt configuration and packages, the
    # identity file contains account setup information variables..
-   source_and_merge ${VARS_FILE_DEFAULT} "AUTOINSTALL_FILES" "ADDITIONAL_FILES"
+   source_and_merge ${VARS_FILE_DEFAULT} "PRESEED_FILES" "ADDITIONAL_FILES"
 
    ! [ ${non_default} ] || popd > /dev/null
 
    # --------------------------------------------------------------------------
    # VARS user
-   source_and_merge ${VARS_FILE} "AUTOINSTALL_FILES" "ADDITIONAL_FILES"
+   source_and_merge ${VARS_FILE} "PRESEED_FILES" "ADDITIONAL_FILES"
 
-   # echo "autoinstall_merged: ${AUTOINSTALL_FILES_MERGED[@]}"
+   # echo "preseed_merged: ${PRESEED_FILES[@]}"
    # echo "additional_merged: ${ADDITIONAL_FILES_MERGED[@]}"
 
 
    # --------------------------------------------------------------------------
-   # Merge all autoinstall files into user-data.
-   # Replace all environment variables in the autoinstall files, and use a
+   # Merge all preseed files into one single preseed.cfg.
+   # Replace all environment variables in the preseed files, and use a
    # temporary folder to store the result.
    echo
-   echo "##### Merge autoinstall files..."
+   echo "##### Merge preseed files..."
 
+   touch "${TMP_SCRATCH_DIR}/preseed.cfg"
    # Substitute all variables in the cloud-init files.
-   for ((i = 0; i < ${#AUTOINSTALL_FILES_MERGED[@]}; ++i)); do
+   for ((i = 0; i < ${#PRESEED_FILES_MERGED[@]}; ++i)); do
       # Create file names in the temporary folder to fill in in the next step.
-      USER_DATA[$i]=$(echo "${TMP_SCRATCH_DIR}/$(basename ${AUTOINSTALL_FILES_MERGED[$i]})")
-      # Fill substituted cloud-init files in. Only those that are defined
+      PRESEED_SUBST[$i]=$(echo "${TMP_SCRATCH_DIR}/$(basename ${PRESEED_FILES_MERGED[$i]})")
+      # Fill substituted preseed files in. Only those that are defined
       # otherwise some file local variables might be converted to blank.
       # https://unix.stackexchange.com/a/492778
-      cat ${AUTOINSTALL_FILES_MERGED[$i]} | envsubst "$(env | cut -d= -f1 | sed -e 's/^/$/')" > ${USER_DATA[$i]}
+      cat ${PRESEED_FILES_MERGED[$i]} | envsubst "$(env | cut -d= -f1 | sed -e 's/^/$/')" > ${PRESEED_SUBST[$i]}
+
+      # Build up final preseed.cfg.
+      cat ${PRESEED_SUBST[$i]} >> "${TMP_SCRATCH_DIR}/preseed.cfg"
+      echo -e "\n" >> "${TMP_SCRATCH_DIR}/preseed.cfg"
+
    done
 
 
    # --------------------------------------------------------------------------
    echo
-   echo "##### Download Ubuntu installer..."
+   echo "##### Download Debian installer..."
    # Check if link is valid. `--head` to only fetch the header, `--output` sent
    # to null to avoid header being printed to the output. `-L` to get response
    # even if server had to redirect (HTTP code 302). `--silent` to prevent
@@ -208,8 +201,8 @@ main() {
 
    # --------------------------------------------------------------------------
    # The iso file cannot be directly extracted and modified since it results in
-   # a write-protected file system (see ISO 9660). Therefore we need to copy
-   # everything to our own working directory and create a new initrd iso image.
+   # a write-protected file system (see ISO 9660). Therefore copy everything to
+   # a working directory and create a new initrd iso image.
    echo
    echo "##### Extract original iso file..."
    # https://wiki.debian.org/ManipulatingISOs
@@ -223,25 +216,17 @@ main() {
    # --------------------------------------------------------------------------
    echo
    echo "##### Adding files to new installer..."
+   # Add custom files to the iso at ./files (these files can be used by
+   # late-commands to be copied on to the target system).
 
-   # Use the `write-mime-multipart` command from the package
-   # `cloud-image-utils` to merge the different parts of USER_DATA into one
-   # user-data file. Concatenating yaml files containing identical keys results
-   # in only the last key to be considered.
-   # https://github.com/canonical/cloud-utils/blob/main/bin/write-mime-multipart
-   [ -d ${ISO_FILES}/autoinstall ] || mkdir ${ISO_FILES}/autoinstall
-   # Usually throws SyntaxWarning:
-   write-mime-multipart --output="${ISO_FILES}/autoinstall/user-data" ${USER_DATA[@]}
+   [ -d "${ISO_FILES}/files" ] || mkdir -p "${ISO_FILES}/files"
 
-   # Also create the meta-data file but leave empty.
-   touch ${ISO_FILES}/autoinstall/meta-data
-
-   # Add custom files to the iso at ./autoinstall (these files can be used by
-   # main.yaml to be copied on to the target system).
    for ((i = 0; i < ${#ADDITIONAL_FILES_MERGED[@]}; ++i)); do
       ADD_FILENAMES[$i]=$(basename ${ADDITIONAL_FILES_MERGED[$i]})
-      cat ${ADDITIONAL_FILES_MERGED[$i]} | envsubst "$(env | cut -d= -f1 | sed -e 's/^/$/')" > "${ISO_FILES}"/autoinstall/"${ADD_FILENAMES[$i]}"
+      cat ${ADDITIONAL_FILES_MERGED[$i]} | envsubst "$(env | cut -d= -f1 | sed -e 's/^/$/')" > "${ISO_FILES}/files/${ADD_FILENAMES[$i]}"
    done
+
+   # cp "${ISO_FILES}/preseed.cfg"
 
 
    # --------------------------------------------------------------------------
@@ -249,27 +234,60 @@ main() {
    echo "##### Modify configuration..."
    {
       pushd ${ISO_FILES} > /dev/null
+      echo
+      echo "##### Adding the preseed file to the initrd..."
+      # In the working directory, we need to make the initrd.gz writable, uncompress
+      # it and append the preseed file to the initrd.
+      sudo getfacl -R --absolute-names "${ISO_FILES}" > "${TMP_SCRATCH_DIR}/acl_install_amd"
+      sudo chmod +w -R "${ISO_FILES}"/install.amd/
+      # Uncompress the archive (which results in an uncompressed archive in the same
+      # directory).
+      gunzip "${ISO_FILES}"/install.amd/initrd.gz
+      # cpio takes a list of file names and copies them into an archive or in our
+      # case, into an existing archive.
+      #   -H newc: use archive format newc
+      #   -o: `--create`: run in copy-out mode
+      #   -A: append to existing archive
+      #   --no-absolute-filenames: create all files relative to the current directory.
+      #   --file=, -F: Archive file name instead of standard input or output.
+      # TODO: currently need to change to the directory of the preseed file,
+      #       because cpio creates the file at the relative location.
+      pushd ${TMP_SCRATCH_DIR} > /dev/null
+      echo "./preseed.cfg" | cpio -H newc -o -A --no-absolute-filenames --file="${ISO_FILES}/install.amd/initrd"
+      popd > /dev/null
+      # Recompress the initrd and return initrd.gz to its original read-only state.
+      gzip "${ISO_FILES}"/install.amd/initrd
+
+      sudo setfacl --restore="${TMP_SCRATCH_DIR}/acl_install_amd"
+
+
+      echo
+      echo "##### Modifying boot menues..."
+      # By putting the preseed in the initrd, the boot menu doesn't need to be
+      # updated (tested for UEFI).
+
+      # If the preseed is not put into the initrd, the following changes in the
+      # boot menues is necessary.
       # GRUB (UEFI normally uses GRUB as bootloader):
       #     Add menuentry to boot/grub/grub.cfg.
       # ISOLINUX (older BIOS rely on SYSLINUX/ISOLINUX bootloaders):
       #     Add menuentry to isolinux/txt.cfg
       # https://askubuntu.com/a/839089
-      # TODO: Is that all? Diff observed between Lat7490 and X201.
-      sudo getfacl --absolute-names "${ISO_FILES}"/boot/grub/grub.cfg > "${TMP_SCRATCH_DIR}/acl_grub_cfg"
-      sudo chmod +w "${ISO_FILES}"/boot/grub/grub.cfg
 
-      sudo getfacl --absolute-names "${ISO_FILES}"/isolinux/txt.cfg > "${TMP_SCRATCH_DIR}/acl_txt_cfg"
+      # Calculate the preseed md5sum.
+      PRESEED_MD5SUM=$(md5sum "${TMP_SCRATCH_DIR}/preseed.cfg" | awk '{print $1;}')
+
+      # isolinux menu:
+      sudo getfacl --absolute-names "${ISO_FILES}/isolinux/txt.cfg" > "${TMP_SCRATCH_DIR}/acl_txt_cfg"
       sudo chmod +w "${ISO_FILES}"/isolinux/txt.cfg
-
-      # Add menu entry for autoinstall after the line specifying the timeout.
-      # It will be the entry selected by default.
-      # NOTE: the `autoinstall` keyword suppresses a prompt after the POST
-      #       screen and basically just rolls over any pre-installed OS.
-      sudo sed -i "/^set timeout=.*/a menuentry \"Ubuntu autoinstall\" {\n\tset gfxpayload=keep\n\tlinux    \/casper\/vmlinuz \"ds=nocloud;s=\/cdrom\/autoinstall\/\"\tquiet autoinstall ---\n\tinitrd   \/casper\/initrd\n}" "${ISO_FILES}"/boot/grub/grub.cfg
-
-      sudo sed -i "s/^default live/default autoinstall\nlabel autoinstall\n\tmenu label ^Ubuntu autoinstall\n\tkernel \/casper\/vmlinuz\n\tappend initrd=\/casper\/initrd quiet autoinstall ds=nocloud;s=\/cdrom\/autoinstall\/ ---/g" "${ISO_FILES}"/isolinux/txt.cfg
-      sudo setfacl --restore="${TMP_SCRATCH_DIR}/acl_grub_cfg"
+      sudo sed -i "1i\prompt 0\ntimeout 1\n\ndefault preseed\nlabel preseed\n\tmenu label ^Auto with preseed\n\tkernel \/install.amd\/vmlinuz\n\tappend vga=788 initrd=/\install.amd\/initrd.gz preseed\/file=\/cdrom\/preseed.cfg preseed\/file\/checksum=${PRESEED_MD5SUM}\n" "${ISO_FILES}/isolinux/txt.cfg"
       sudo setfacl --restore="${TMP_SCRATCH_DIR}/acl_txt_cfg"
+
+      # grub menu:
+      sudo getfacl --absolute-names "${ISO_FILES}/boot/grub/grub.cfg" > "${TMP_SCRATCH_DIR}/acl_grub_cfg"
+      sudo chmod +w "${ISO_FILES}"/boot/grub/grub.cfg
+      sudo sed -i "/^submenu --hotkey=a.*/i menuentry --hotkey=p 'Auto with preseed' {\n\tset background_color=black\n\tlinux    \/install.amd\/vmlinuz vga=788 --- quiet\n\tinitrd   \/install.amd\/initrd.gz preseed\/file=\/cdrom\/preseed.cfg preseed\/file\/checksum=${PRESEED_MD5SUM}\n}" "${ISO_FILES}/boot/grub/grub.cfg"
+      sudo setfacl --restore="${TMP_SCRATCH_DIR}/acl_grub_cfg"
 
       echo
       echo "##### Regenerating md5sum.txt..."
@@ -281,15 +299,15 @@ main() {
       # file delimited by newline character. Pipe line into md5sum command.
       # Find will output the following warning:
       # ```
-      # find: File system loop detected; ‘./ubuntu’ is part of the same file system loop as ‘.’.
+      # find: File system loop detected; ‘./debian‘ is part of the same file system loop as ‘.’.
       # ```
       # Pruning of the directory didn't help, therefore move it temporarily out
       # of the way.
-      mv ./ubuntu /tmp/
+      mv ./debian "${TMP_SCRATCH_DIR}"
       find -L -type f ! -name md5sum.txt -print0 | xargs -0 md5sum > md5sum.txt
 
       sudo setfacl --restore="${TMP_SCRATCH_DIR}/acl_md5sum_txt"
-      mv /tmp/ubuntu .
+      mv "${TMP_SCRATCH_DIR}/debian" .
 
       # -----------------------------------------------------------------------
       echo
@@ -306,11 +324,11 @@ main() {
       # says 446.
       # Use 512 as the maximum: https://unix.stackexchange.com/a/254668
       # dd if="${ISO_ORIG}" bs=1 count=446 of="${MBR_TEMPLATE}"
-      dd if="${ISO_ORIG}" bs=1 count=512 of="${MBR_TEMPLATE}"
+      dd if="${ISO_ORIG}" bs=1 count=432 of="${MBR_TEMPLATE}"
 
       echo
       echo "## 2. Creating new iso..."
-      xorriso -as mkisofs -r -V 'focal-autoinstall' \
+      xorriso -as mkisofs -r -V 'bullseye-preseed' \
          -cache-inodes -J -l \
          -isohybrid-mbr "${MBR_TEMPLATE}" \
          -partition_offset 16 \
@@ -319,10 +337,9 @@ main() {
             -no-emul-boot -boot-load-size 4 -boot-info-table \
          -eltorito-alt-boot \
          -e boot/grub/efi.img \
-            -no-emul-boot -isohybrid-gpt-basdat \
+            -no-emul-boot -isohybrid-gpt-basdat -isohybrid-apm-hfsplus \
          -o "${ISO_NEW}" \
          "${ISO_FILES}"
-
 
       popd > /dev/null # ${ISO_FILES}
    }
