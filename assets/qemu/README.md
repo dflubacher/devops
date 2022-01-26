@@ -67,7 +67,7 @@ Here is what I did:
         ```sh
         sudo cp /boot/efi/EFI/debian/grubx64.efi /boot/efi/EFI/BOOT/BOOTX64.EFI
         ```
-    * For shim (secure boot)"
+    * For shim (secure boot):
         ```sh
         sudo cp /boot/efi/EFI/debian/shimx64.efi /boot/efi/EFI/BOOT/BOOTX64.EFI
         sudo cp /boot/efi/EFI/debian/grubx64.efi /boot/efi/EFI/BOOT/grubx64.efi

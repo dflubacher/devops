@@ -26,7 +26,7 @@
 
   pre_tasks:
     - name: Update apt cache if needed
-      become: yes
+      become: true
       apt:
         upgrade: yes
         update_cache: yes
@@ -34,7 +34,7 @@
 
   tasks:
     - name: Set to generate locales
-      become: yes
+      become: true
       ansible.builtin.debconf:
         name: locales
         question: locales/locales_to_be_generated
@@ -43,7 +43,7 @@
 
     # https://github.com/microsoft/vscode-dev-containers/blob/6e97392e224a3bcf392f3b5b1cd171697e4b4764/containers/rust/.devcontainer/library-scripts/rust-debian.sh#L124
     - name: Install packages
-      become: yes
+      become: true
       apt:
         pkg:
           - build-essential
@@ -73,7 +73,7 @@
 
     ##### Disable Bluetooth on startup, manually switch it on per need.
     - name: Configure tlp bluetooth settings
-      become: yes
+      become: true
       lineinfile:
         dest: /etc/tlp.conf
         regexp: "^DEVICES_TO_DISABLE_ON_STARTUP=(.*)"
@@ -81,14 +81,14 @@
         state: present
 
     - name: Start tlp
-      become: yes
+      become: true
       service:
         name: tlp
         state: started
         enabled: yes
 
     - name: Ensure chrony is running
-      become: yes
+      become: true
       service:
         name: chronyd
         state: started
@@ -96,14 +96,14 @@
 
     ##### Remove swap.img.
     - name: Remove swap file from /etc/fstab as we're using a swap partition
-      become: yes
+      become: true
       ansible.posix.mount:
         path: /swap.img
         fstype: swap
         state: absent
 
     - name: Disable swap
-      become: yes
+      become: true
       command: swapoff /swap.img
       tags: swap, non-idempotent
 
@@ -111,7 +111,7 @@
     ##### Unattended updates. To check if that alone works or if additional
     # files in /etc/apt/apt.conf.d/ have to be modified.
     - name: Install unattended-upgrades
-      become: yes
+      become: true
       apt:
         pkg:
           - unattended-upgrades
@@ -120,7 +120,7 @@
 
     # https://askubuntu.com/a/1323117
     - name: Configure debconf settings
-      become: yes
+      become: true
       ansible.builtin.debconf:
         name: unattended-upgrades
         question: unattended-upgrades/enable_auto_updates
@@ -128,7 +128,7 @@
         vtype: boolean
 
     - name: dpkg-reconfigure -f noninteractive unattended-upgrades
-      become: yes
+      become: true
       command:
         cmd: dpkg-reconfigure -f noninteractive unattended-upgrades
         creates: /etc/apt/apt.conf.d/20auto-upgrades
@@ -140,7 +140,7 @@
     # installed. Added cloud-image-utils for merging cloud-init configuration
     # files.
     - name: Install KVM for Ubuntu
-      become: yes
+      become: true
       apt:
         pkg:
           - qemu-kvm
@@ -157,13 +157,13 @@
         install_recommends: no
 
     - name: Ensure group "libvirt" exists
-      become: yes
+      become: true
       ansible.builtin.group:
         name: libvirt
         state: present
 
     - name: Add user to "libvirt" group
-      become: yes
+      become: true
       ansible.builtin.user:
         user: "{{ user }}"
         groups: libvirt
@@ -171,20 +171,20 @@
 
     # https://www.vagrantup.com/downloads
     - name: Install Vagrant apt repository and signing key (add apt signing key to keyring file)
-      become: yes
+      become: true
       ansible.builtin.apt_key:
         url: https://apt.releases.hashicorp.com/gpg
         keyring: /etc/apt/trusted.gpg.d/releases.hashicorp.gpg
 
     - name: Enable auto-updating using the system's package manager
-      become: yes
+      become: true
       ansible.builtin.apt_repository:
         repo: deb [arch=amd64,arm64,armhf signed-by=/etc/apt/trusted.gpg.d/releases.hashicorp.gpg] https://apt.releases.hashicorp.com focal main
         state: present
         filename: vagrant
 
     - name: Install Vagrant
-      become: yes
+      become: true
       apt:
         pkg:
           - vagrant
@@ -199,20 +199,20 @@
     # TODO: somehow there still ends up an apt-repository without `signed-by`
     #       in google-chrome.list.
     - name: Install Chrome apt repository and signing key (add apt signing key to keyring file)
-      become: yes
+      become: true
       ansible.builtin.apt_key:
         url: https://dl-ssl.google.com/linux/linux_signing_key.pub
         keyring: /etc/apt/trusted.gpg.d/google-chrome.gpg
 
     - name: Enable auto-updating Chrome using the system's package manager
-      become: yes
+      become: true
       ansible.builtin.apt_repository:
         repo: deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main
         state: present
         filename: google-chrome
 
     - name: Install Google Chrome
-      become: yes
+      become: true
       apt:
         pkg:
           - google-chrome-stable
@@ -221,20 +221,20 @@
 
     ##### VS code.
     - name: Install vscode apt repository and signing key (add apt signing key to keyring file)
-      become: yes
+      become: true
       ansible.builtin.apt_key:
         url: https://packages.microsoft.com/keys/microsoft.asc
         keyring: /etc/apt/trusted.gpg.d/packages.microsoft.gpg
 
     - name: Enable auto-updating using the system's package manager.
-      become: yes
+      become: true
       ansible.builtin.apt_repository:
         repo: deb [arch=amd64,arm64,armhf signed-by=/etc/apt/trusted.gpg.d/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main
         state: present
         filename: vscode
 
     - name: Install VS code
-      become: yes
+      become: true
       apt:
         pkg:
           - apt-transport-https
@@ -254,7 +254,7 @@
     ##### docker.
     # Not idempotent.
     - name: Download docker installer
-      become: yes
+      become: true
       get_url:
         url: https://get.docker.com
         dest: /tmp/docker-installer
@@ -262,12 +262,12 @@
       tags: non-idempotent
 
     - name: Execute the docker installer
-      become: yes
+      become: true
       shell: /tmp/docker-installer
       tags: docker, non-idempotent
 
     - name: Add current user to Docker group
-      become: yes
+      become: true
       ansible.builtin.user:
         name: "{{ user }}"
         groups: docker
@@ -275,7 +275,7 @@
       tags: docker, non-idempotent
 
     - name: enable Docker daemon
-      become: yes
+      become: true
       service:
         name: docker
         state: started
@@ -301,13 +301,13 @@
     # Installing the latest inkscape version using their ppa.
     # https://wiki.inkscape.org/wiki/Installing_Inkscape#Ubuntu_Linux_New_Stable_Versions
     - name: Add stable Inkscape ppa
-      become: yes
+      become: true
       ansible.builtin.apt_repository:
         repo: ppa:inkscape.dev/stable
         update_cache: yes
 
     - name: Install Inkscape
-      become: yes
+      become: true
       apt:
         pkg:
           - inkscape
@@ -316,13 +316,13 @@
 
     ##### Gimp.
     - name: Add stable Gimp ppa
-      become: yes
+      become: true
       ansible.builtin.apt_repository:
         repo: ppa:ubuntuhandbook1/gimp
         update_cache: yes
 
     - name: Install Gimp
-      become: yes
+      become: true
       apt:
         pkg:
           - gimp
@@ -332,7 +332,7 @@
 
     ##### Enable firewall.
     - name: Enable ufw
-      become: yes
+      become: true
       community.general.ufw:
         state: enabled
 
@@ -477,7 +477,7 @@
     # `chsh -s $(which zsh)` requires sudo, but using become in Ansible sets
     # the shell for root. Therefore use the user module.
     - name: Make zsh the default shell for the current user
-      become: yes
+      become: true
       user:
         name: "{{ user }}"
         shell: /usr/bin/zsh
