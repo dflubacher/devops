@@ -328,6 +328,8 @@ main() {
 
       echo
       echo "## 2. Creating new iso..."
+      # Warnings regarding symlinks for Joliet trees should be of no concern:
+<     # https://superuser.com/a/1598612
       xorriso -as mkisofs -r -V 'bullseye-preseed' \
          -cache-inodes -J -l \
          -isohybrid-mbr "${MBR_TEMPLATE}" \
