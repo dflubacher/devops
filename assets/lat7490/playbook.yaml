@@ -512,7 +512,6 @@
       ansible.builtin.shell:
         cmd: /tmp/ohmyzsh-installer.sh --unattended
         creates: "{{ home_dir }}/.zsh.pre-oh-my-zsh"
-      tags: zsh, non-idempotent
 
     - name: Remove the oh-my-zsh installer
       file:

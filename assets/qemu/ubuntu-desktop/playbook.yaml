@@ -104,7 +104,8 @@
 
     - name: Disable swap
       become: true
-      command: swapoff /swap.img
+      command: 
+        cmd: swapoff /swap.img
       tags: swap, non-idempotent
 
 
@@ -192,7 +193,8 @@
         update_cache: yes
 
     - name: Install Vagrant plugin for libvirt
-      shell: "vagrant plugin install vagrant-libvirt"
+      command: 
+        cmd: "vagrant plugin install vagrant-libvirt"
       tags: vagrant, non-idempotent
 
     ##### Google Chrome.
@@ -244,12 +246,17 @@
 
     # VS code recommends to install extensions per user.
     - name: Install VS code extensions
-      shell: "code --install-extension {{ item }}"
+      command: 
+        cmd: "code --install-extension {{ item }}"
       loop:
         - "ms-vscode.cpptools"
         - "ms-python.python"
         - "ms-python.vscode-pylance"
         - "ms-vscode-remote.vscode-remote-extensionpack"
+        - "ms-kubernetes-tools.vscode-kubernetes-tools"
+        - "ms-azuretools.vscode-docker"
+        - "redhat.ansible"
+        - "eamodio.gitlens"
 
     ##### docker.
     # Not idempotent.
@@ -263,7 +270,8 @@
 
     - name: Execute the docker installer
       become: true
-      shell: /tmp/docker-installer
+      command: 
+        cmd: /tmp/docker-installer
       tags: docker, non-idempotent
 
     - name: Add current user to Docker group
@@ -455,7 +463,7 @@
       tags: zsh, non-idempotent
 
     - name: Execute the oh-my-zsh installer
-      ansible.builtin.shell:
+      command:
         cmd: /tmp/ohmyzsh-installer.sh --unattended
         creates: "{{ home_dir }}/.zsh.pre-oh-my-zsh"
       tags: zsh, non-idempotent
