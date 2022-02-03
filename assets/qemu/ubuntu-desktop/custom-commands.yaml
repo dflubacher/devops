@@ -13,5 +13,5 @@ autoinstall:
     # repository or download it.
     # https://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#USRLOCALSHARE1
     - cp /cdrom/autoinstall/playbook.yaml /target/usr/local/share/
-    - cp /cdrom/autoinstall/hosts.ini /target/usr/local/share/
+    - cp -r /cdrom/autoinstall/ansible /target/usr/local/share/
     - cp /cdrom/autoinstall/pyproject.toml /target/usr/local/share/

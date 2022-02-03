@@ -239,8 +239,30 @@ main() {
    # Add custom files to the iso at ./autoinstall (these files can be used by
    # main.yaml to be copied on to the target system).
    for ((i = 0; i < ${#ADDITIONAL_FILES_MERGED[@]}; ++i)); do
-      ADD_FILENAMES[$i]=$(basename ${ADDITIONAL_FILES_MERGED[$i]})
-      cat ${ADDITIONAL_FILES_MERGED[$i]} | envsubst "$(env | cut -d= -f1 | sed -e 's/^/$/')" > "${ISO_FILES}"/autoinstall/"${ADD_FILENAMES[$i]}"
+      if [[ -d ${ADDITIONAL_FILES_MERGED[$i]} ]]; then
+         # If it is a directory, copy it to the scratch folder and substitute
+         # variables in all files.
+         # TODO: not robust enough. File not checked for:
+         #       - not binary
+         #       - writable
+         folder_name=$(basename ${ADDITIONAL_FILES_MERGED[$i]})
+         cp -r ${ADDITIONAL_FILES_MERGED[$i]} "${TMP_SCRATCH_DIR}/"
+
+         for file_name in $(find "${TMP_SCRATCH_DIR}/${folder_name}" -type f); do
+            # Find should return absolute filepaths.
+            cat ${file_name} | envsubst "$(env | cut -d= -f1 | sed -e 's/^/$/')" > ${file_name}
+         done
+
+         # Now that all variables should be replaced, copy folder into the iso.
+         cp -r "${TMP_SCRATCH_DIR}/${folder_name}" "${ISO_FILES}/autoinstall/"
+      
+      elif [[ -f ${ADDITIONAL_FILES_MERGED[$i]} ]]; then
+         ADD_FILENAMES[$i]=$(basename ${ADDITIONAL_FILES_MERGED[$i]})
+         cat ${ADDITIONAL_FILES_MERGED[$i]} | envsubst "$(env | cut -d= -f1 | sed -e 's/^/$/')" > "${ISO_FILES}/autoinstall/${ADD_FILENAMES[$i]}"
+      else
+         echo "${ADDITIONAL_FILES_MERGED[$i]} is not valid"
+         exit 1
+      fi
    done
 
 

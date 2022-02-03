@@ -1,0 +1,8 @@
+[desktops]
+lat7490 ansible_host=localhost
+xps8300 ansible_host=localhost
+x201 ansible_host=localhost
+
+[servers]
+dl380g9lff ansible_host=172.18.42.42
+nuc8i7beh ansible_host=172.18.42.142

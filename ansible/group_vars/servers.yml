@@ -1,0 +1,7 @@
+---
+# #############################################################################
+# ###   Ansible variables defaults for Debian                               ###
+# #############################################################################
+ansible_user: debian
+git_username: Debian Bullseye
+git_email: debian@email.com

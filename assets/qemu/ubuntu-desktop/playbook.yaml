@@ -181,7 +181,7 @@
         url: https://apt.releases.hashicorp.com/gpg
         keyring: /etc/apt/trusted.gpg.d/releases.hashicorp.gpg
 
-    - name: Enable auto-updating using the system's package manager
+    - name: Enable Vagrant auto-updating using the system's package manager
       become: true
       ansible.builtin.apt_repository:
         repo: deb [arch=amd64,arm64,armhf signed-by=/etc/apt/trusted.gpg.d/releases.hashicorp.gpg] https://apt.releases.hashicorp.com focal main
@@ -445,7 +445,7 @@
       command:
         cmd: /tmp/ohmyzsh-installer.sh --unattended
       args:
-        creates: "{{ home_dir }}/.zsh.pre-oh-my-zsh"
+        creates: "{{ home_dir }}/.oh-my-zsh/oh-my-zsh.sh"
 
     - name: Remove the oh-my-zsh installer
       file:

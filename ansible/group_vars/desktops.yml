@@ -1,0 +1,7 @@
+---
+# #############################################################################
+# ###   Ansible variables defaults for Ubuntu                               ###
+# #############################################################################
+ansible_user: ubuntu
+git_username: Ubuntu Focal
+git_email: ubuntu@email.com
