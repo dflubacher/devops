@@ -10,7 +10,7 @@
 # -----------------------------------------------------------------------------
 
 ---
-- hosts: lat7490
+- hosts: qemu_lat7490
   connection: local
   become_user: root
 
@@ -42,7 +42,7 @@
         vtype: multiselect
 
     # https://github.com/microsoft/vscode-dev-containers/blob/6e97392e224a3bcf392f3b5b1cd171697e4b4764/containers/rust/.devcontainer/library-scripts/rust-debian.sh#L124
-    - name: Install packages
+    - name: Install apt packages
       become: true
       apt:
         pkg:
@@ -102,12 +102,16 @@
         fstype: swap
         state: absent
 
+    - name: Check if /swap.img is enabled for swapping
+      command:
+        cmd: swapon --show --noheadings
+      register: swap_files
+
     - name: Disable swap
       become: true
-      command: 
+      command:
         cmd: swapoff /swap.img
-      tags: swap, non-idempotent
-
+      when: "'/swap.img' in swap_files.stdout"
 
     ##### Unattended updates. To check if that alone works or if additional
     # files in /etc/apt/apt.conf.d/ have to be modified.
@@ -192,10 +196,16 @@
         state: latest
         update_cache: yes
 
+    # https://www.vagrantup.com/docs/cli/plugin#plugin-list
+    - name: Check installed Vagrant plugins
+      command:
+        cmd: vagrant plugin list
+      register: vagrant_plugins
+
     - name: Install Vagrant plugin for libvirt
-      command: 
-        cmd: "vagrant plugin install vagrant-libvirt"
-      tags: vagrant, non-idempotent
+      command:
+        cmd: vagrant plugin install vagrant-libvirt
+      when: "'vagrant-libvirt' not in vagrant_plugins.stdout"
 
     ##### Google Chrome.
     # TODO: somehow there still ends up an apt-repository without `signed-by`
@@ -222,13 +232,13 @@
         update_cache: yes
 
     ##### VS code.
-    - name: Install vscode apt repository and signing key (add apt signing key to keyring file)
+    - name: Install VS code apt repository and signing key (add apt signing key to keyring file)
       become: true
       ansible.builtin.apt_key:
         url: https://packages.microsoft.com/keys/microsoft.asc
         keyring: /etc/apt/trusted.gpg.d/packages.microsoft.gpg
 
-    - name: Enable auto-updating using the system's package manager.
+    - name: Enable auto-updating VS code using the system's package manager
       become: true
       ansible.builtin.apt_repository:
         repo: deb [arch=amd64,arm64,armhf signed-by=/etc/apt/trusted.gpg.d/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main
@@ -244,23 +254,28 @@
         state: latest
         update_cache: yes
 
+    - name: Check installed VS code extensions
+      command:
+        cmd: code --list-extensions
+      register: vs_code_extensions_installed
+
     # VS code recommends to install extensions per user.
     - name: Install VS code extensions
-      command: 
+      command:
         cmd: "code --install-extension {{ item }}"
       loop:
         - "ms-vscode.cpptools"
         - "ms-python.python"
         - "ms-python.vscode-pylance"
         - "ms-vscode-remote.vscode-remote-extensionpack"
-        - "ms-kubernetes-tools.vscode-kubernetes-tools"
+        # - "ms-kubernetes-tools.vscode-kubernetes-tools"
         - "ms-azuretools.vscode-docker"
         - "redhat.ansible"
         - "eamodio.gitlens"
+      when: item not in vs_code_extensions_installed.stdout
 
-    ##### docker.
-    # Not idempotent.
-    - name: Download docker installer
+    ##### Docker.
+    - name: Download Docker installer
       become: true
       get_url:
         url: https://get.docker.com
@@ -268,11 +283,13 @@
         mode: "0755"
       tags: non-idempotent
 
-    - name: Execute the docker installer
+    # TODO: Is the executable always at this location?
+    - name: Execute the Docker installer
       become: true
-      command: 
+      command:
         cmd: /tmp/docker-installer
-      tags: docker, non-idempotent
+      args:
+        creates: /usr/bin/docker
 
     - name: Add current user to Docker group
       become: true
@@ -280,9 +297,8 @@
         name: "{{ user }}"
         groups: docker
         append: yes
-      tags: docker, non-idempotent
 
-    - name: enable Docker daemon
+    - name: Enable Docker daemon
       become: true
       service:
         name: docker
@@ -416,42 +432,6 @@
         # value: 'meld "$LOCAL" "$BASE" "$REMOTE" --output "$MERGED"'
         scope: global
 
-    # ##### oh-my-bash.
-    # # This is not idempotent, but using the native installation script I doubt
-    # # it can be made idempotent.
-    # - name: Download oh-my-bash installer
-    #   get_url:
-    #     url: https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh
-    #     dest: /tmp/ohmybash-installer.sh
-    #     mode: "0755"
-    #   tags: non-idempotent
-
-    # - name: Execute the oh-my-bash installer
-    #   ansible.builtin.shell:
-    #     cmd: /tmp/ohmybash-installer.sh --unattended
-    #     creates: "{{ home_dir }}/.bashrc.pre-oh-my-bash"
-    #   tags: non-idempotent
-
-    # - name: Remove the oh-my-bash installer
-    #   file:
-    #     path: /tmp/ohmybash-installer.sh
-    #     state: absent
-    #   tags: non-idempotent
-
-    # - name: Configure oh-my-bash theme to use garo
-    #   lineinfile:
-    #     dest: "{{ home_dir }}/.bashrc"
-    #     regexp: "^OSH_THEME.*"
-    #     line: 'OSH_THEME="garo"'
-    #     state: present
-    #   tags: non-idempotent
-
-    # TODO: check if sourcing works.
-    # - name: Source .bashrc.
-    #   become: no
-    #   shell: ". /home/{{ user }}/.bashrc"
-    # end: oh-my-bash.
-
     ##### oh-my-zsh.
     # This is not idempotent, but using the native installation script I doubt
     # it can be made idempotent.
@@ -460,13 +440,12 @@
         url: https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
         dest: /tmp/ohmyzsh-installer.sh
         mode: "0755"
-      tags: zsh, non-idempotent
 
     - name: Execute the oh-my-zsh installer
       command:
         cmd: /tmp/ohmyzsh-installer.sh --unattended
+      args:
         creates: "{{ home_dir }}/.zsh.pre-oh-my-zsh"
-      tags: zsh, non-idempotent
 
     - name: Remove the oh-my-zsh installer
       file:
