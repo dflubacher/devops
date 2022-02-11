@@ -1,0 +1,225 @@
+---
+# Locales with Ansible debconf seem not to take effect:
+# https://stackoverflow.com/a/54335992
+- name: Select locales to be generated
+  become: true
+  replace:
+    path: /etc/locale.gen
+    # Uncomment every line starting with the item.
+    regexp: '^\s*#*\s*({{ item }}.*)'
+    replace: '\1'
+  loop: "{{ locales_to_generate }}"
+  notify: Reconfigure locales
+
+- name: Set default locale
+  become: true
+  ansible.builtin.lineinfile:
+    dest: "/etc/default/locale"
+    regexp: '{{ item.key }}.*'
+    line: '{{ item.key }}="{{ item.value }}"'
+  loop: "{{ locales_default }}"
+  notify: Reconfigure locales
+
+- name: Install apt essential packages
+  become: true
+  apt:
+    pkg: "{{ apt_pkgs_common }}"
+    state: latest
+    update_cache: yes
+
+# Disable Bluetooth on startup, manually switch it on as needed.
+- name: Configure tlp settings at startup
+  become: true
+  lineinfile:
+    dest: /etc/tlp.conf
+    regexp: "^DEVICES_TO_DISABLE_ON_STARTUP=(.*)"
+    line: 'DEVICES_TO_DISABLE_ON_STARTUP="bluetooth wwan"'
+    state: present
+
+- name: Start tlp
+  become: true
+  service:
+    name: tlp
+    state: started
+    enabled: yes
+
+# The chrony configuration has distro specific lines in it.
+- name: Comment out distribution specific ntp servers
+  become: true
+  replace:
+    path: /etc/chrony/chrony.conf
+    regexp: '(^pool .*)'
+    replace: '# \1'
+
+- name: Add Switzerland ntp servers to chronyd
+  become: true
+  blockinfile:
+    dest: /etc/chrony/chrony.conf
+    # Inserted after last match of the commented lines.
+    insertafter: '^# pool.*'
+    block: |
+      pool 0.ch.pool.ntp.org iburst maxsources 3
+      pool 1.ch.pool.ntp.org iburst
+      pool 2.ch.pool.ntp.org iburst
+      pool 3.ch.pool.ntp.org iburst
+    state: present
+
+- name: Ensure chrony is running
+  become: true
+  service:
+    name: chronyd
+    state: started
+    enabled: yes
+
+# Unattended Upgrades
+# src: https://github.com/geerlingguy/ansible-for-devops/tree/master/security
+- name: Copy unattended-upgrades configuration files in place.
+  become: true
+  template:
+    src: "../templates/{{ item }}.j2"
+    dest: "/etc/apt/apt.conf.d/{{ item }}"
+    owner: root
+    group: root
+    mode: 0644
+  loop:
+    - 20auto-upgrades
+    - 50unattended-upgrades
+  when: ansible_facts['os_family'] == 'Debian'
+
+# # Alternative without copying files.
+# # https://askubuntu.com/a/1323117
+# - name: Configure debconf settings
+#   become: true
+#   ansible.builtin.debconf:
+#     name: unattended-upgrades
+#     question: unattended-upgrades/enable_auto_updates
+#     value: "true"
+#     vtype: boolean
+
+# - name: dpkg-reconfigure -f noninteractive unattended-upgrades
+#   become: true
+#   command:
+#     cmd: dpkg-reconfigure -f noninteractive unattended-upgrades
+#     creates: /etc/apt/apt.conf.d/20auto-upgrades
+
+##### oh-my-zsh.
+# This is not idempotent, but using the native installation script I doubt
+# it can be made idempotent.
+- name: Download oh-my-zsh installer
+  get_url:
+    url: https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
+    dest: /tmp/ohmyzsh-installer.sh
+    mode: "0755"
+
+- name: Execute the oh-my-zsh installer
+  command:
+    cmd: /tmp/ohmyzsh-installer.sh --unattended
+  args:
+    creates: "~/.oh-my-zsh/oh-my-zsh.sh"
+
+- name: Remove the oh-my-zsh installer
+  file:
+    path: /tmp/ohmyzsh-installer.sh
+    state: absent
+
+- name: Configure oh-my-zsh theme to use eastwood theme
+  lineinfile:
+    dest: "~/.zshrc"
+    regexp: "^ZSH_THEME.*"
+    line: 'ZSH_THEME="eastwood"'
+    state: present
+
+# For some reason, zsh is not set as the default shell. The command
+# `chsh -s $(which zsh)` requires sudo, but using become in Ansible sets
+# the shell for root. Therefore use the user module.
+- name: Make zsh the default shell for the current user
+  become: true
+  user:
+    name: "{{ ansible_user }}"
+    shell: /usr/bin/zsh
+
+#####   History autocomplete   ################################################
+# src: https://unix.stackexchange.com/a/20830
+- name: Enable autocomplete using bash history
+  blockinfile:
+    path: "~/.inputrc"
+    create: yes
+    marker_begin: "Autocomplete: Key bindings, up/down arrow searches through history."
+    marker_end: "end: Autocomplete"
+    block: |
+      "\e[A": history-search-backward
+      "\e[B": history-search-forward
+      "\eOA": history-search-backward
+      "\eOB": history-search-forward
+
+#####   Git configuration   ###################################################
+# Without become_user, the config is placed in /root/.gitconfig. This
+# requires sudo.
+- name: Set ui color to true
+  community.general.git_config:
+    name: color.ui
+    value: true
+    scope: global
+
+# git alias up.
+# https://stackoverflow.com/a/15316602
+- name: Add git alias 'up'
+  community.general.git_config:
+    name: alias.up
+    value: "!git remote update -p; git merge --ff-only @{u}"
+    scope: global
+
+# Use `git up`, but safeguard `git pull`.
+- name: Limit 'git pull' to only use fast-forward merges
+  community.general.git_config:
+    name: pull.ff
+    value: only
+    scope: global
+
+- name: User configuration name
+  community.general.git_config:
+    name: user.name
+    value: "{{ git_username }}"
+    scope: global
+
+- name: User configuration email
+  community.general.git_config:
+    name: user.email
+    value: "{{ git_email }}"
+    scope: global
+
+# git diff tool.
+# https://stackoverflow.com/a/34119867
+- name: Set git diff tool to use meld
+  community.general.git_config:
+    name: diff.tool
+    value: meld
+    scope: global
+
+- name: Disable git from prompting to use meld or not
+  community.general.git_config:
+    name: difftool.prompt
+    value: false
+    scope: global
+
+- name: Set meld command
+  community.general.git_config:
+    name: difftool.meld.cmd
+    value: 'meld "$LOCAL" "$REMOTE"'
+    scope: global
+
+# git merge tool.
+# https://stackoverflow.com/a/34119867
+- name: Set git merge tool to use meld
+  community.general.git_config:
+    name: merge.tool
+    value: meld
+    scope: global
+
+- name: Set meld command
+  community.general.git_config:
+    name: mergetool.meld.cmd
+    # Choose one of these 2 lines (not both!) explained in link above.
+    value: 'meld "$LOCAL" "$MERGED" "$REMOTE" --output "$MERGED"'
+    # value: 'meld "$LOCAL" "$BASE" "$REMOTE" --output "$MERGED"'
+    scope: global

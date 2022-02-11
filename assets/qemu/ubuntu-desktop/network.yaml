@@ -20,7 +20,7 @@ autoinstall:
     # renderer: NetworkManager
     # renderer: networkd
     ethernets:
-      ${IFACE_ETH1}:
+      ${IFACE_ETH0}:
         dhcp4: true
         # dhcp6: true
 

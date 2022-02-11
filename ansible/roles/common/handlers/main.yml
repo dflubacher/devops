@@ -1,0 +1,11 @@
+---
+- name: Reconfigure locales
+  become: true
+  command: dpkg-reconfigure -f noninteractive locales
+
+- name: Enable ufw
+  become: true
+  community.general.ufw:
+    # https://docs.ansible.com/ansible/latest/collections/community/general/ufw_module.html#parameter-state
+    # reloads and enables firewall on boot.
+    state: enabled

@@ -1,0 +1,50 @@
+---
+# =============================================================================
+# Provisioning script for Debian 11 on qemu (emulating nuc8i7beh)
+# v0.1.0, 2022-02-11
+# Cmd: `poetry run ansible-playbook -i ansible/staging ansible/server.yml \
+#       --limit "qemu_nuc8i7beh" --ask-become-pass``
+# -----------------------------------------------------------------------------
+- hosts: servers
+
+  # Gathering facts requires a connection to the target, which requires the
+  # correct ssh port setting. Therefore defer gathering facts to after the ssh
+  # port is set up.
+  gather_facts: false
+  pre_tasks:
+    # First try to negotiate ssh port.
+    - name: Negotiate ssh port
+      import_tasks: roles/sshd/tasks/set_ansible_port.yml
+
+    - name: Deferred gathering of facts
+      setup:
+
+    - name: Update apt cache if needed
+      become: true
+      apt:
+        upgrade: yes
+        update_cache: yes
+        cache_valid_time: 3600
+
+  post_tasks:
+    - name: Clean up apt
+      become: true
+      apt:
+        update_cache: yes
+        upgrade: yes
+        autoremove: yes
+        autoclean: yes
+    - name: Reboot target
+      become: true
+      reboot:
+        msg: "Reboot initiated by Ansible"
+        connect_timeout: 5
+        reboot_timeout: 600
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+        test_command: whoami
+
+  roles:
+    - common
+    - sshd
+    - virtualization

@@ -3,5 +3,11 @@
 # ###   Ansible variables defaults                                          ###
 # #############################################################################
 ansible_user: ubuntu
+# https://docs.ansible.com/ansible/latest/inventory/implicit_localhost.html
+# If this is not set, Ansible might use /usr/bin/python and then might not
+# find certain libraries (ModuleNotFoundError), as described here:
+# https://stackoverflow.com/a/51973504
+ansible_python_interpreter: "{{ ansible_playbook_python }}"
+
 git_username: Ubuntu Focal
 git_email: ubuntu@email.com

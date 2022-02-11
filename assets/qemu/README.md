@@ -33,9 +33,10 @@ With special port and ssh certificate, the connection needs to be added using CL
 ```sh
 virt-manager -c "qemu+ssh://<user>@<address>:<port>/system?keyfile=/path/to/identity/file"
 ```
-TODO: why is it `system`?
 
-> NOTE: If VM is run on remote machine, virt-install needs sudo for remote monitoring by virt-manager. 
+
+> NOTE: If VM is run on remote machine, virt-install needs sudo for remote monitoring by virt-manager. That is the reason for `/system?` in the above command. `/session?` is unfortunately [not supported for remote monitoring by libvirt](https://listman.redhat.com/archives/libvirt-users/2014-June/msg00102.html).
+> Error would be: `Operation not supported: Connecting to session instance without socket path is not supported by the ssh transport`
 
 ### Copy out of VM using libvirt
 ```sh
@@ -74,3 +75,14 @@ Here is what I did:
         sudo cp /boot/efi/EFI/debian/grub.cfg /boot/efi/EFI/BOOT/grub.cfg
         ```
 - [Ubuntu reference regarding this](https://wiki.ubuntu.com/UEFI/SecureBoot/Testing)
+
+## Set IP for VM
+```sh
+virsh net-update default add ip-dhcp-host "<host mac='52:54:00:42:42:ab' name='qemu_nuc8i7beh' ip='192.168.122.124' />" --live --config
+virsh net-update default add dns-host "<host ip='192.168.122.124'><hostname>qemu_nuc8i7beh</hostname></host>" --live --config
+```
+This results in an error if already defined.
+- [libvirt reference](https://wiki.libvirt.org/page/Networking#virsh_net-update)
+
+TODO: Get DNS to work.
+- Easiest fix: add `192.168.122.124 qemu_nuc8i7beh` to /etc/hosts

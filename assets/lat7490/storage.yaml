@@ -17,6 +17,9 @@ merge_how:
 # M, G are Mebibyte, Gibibyte.
 autoinstall:
   storage:
+    swap:
+      #####   Disable swap file (use swap partition)   ########################
+      size: 0
     config:
       #####   Disk   ##########################################################
       # Disk, serial takes precedence over path.

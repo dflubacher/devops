@@ -1,0 +1,4 @@
+---
+dependencies:
+  # Needed for common handlers (e.g. ufw)
+  - role: common

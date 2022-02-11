@@ -1,0 +1,37 @@
+---
+# qemu-utils contains qemu-img.
+# virt-manager is useful for desktop systems, for servers virtinst and
+# python3-libvirt should be enough.
+virt_apt_pkgs:
+  - qemu
+  - qemu-kvm
+  - qemu-utils
+  - virt-manager
+  - libvirt-daemon
+  - libvirt-daemon-system
+  - python3-libvirt
+  - libvirt-clients
+  - libvirt-dev
+  - bridge-utils
+  - libguestfs-tools
+  - qemu-efi
+  - ovmf
+  - cloud-image-utils
+  - xorriso
+  - libosinfo-bin
+
+vagrant_build_deps:
+  - vagrant
+  - ruby-libvirt
+
+vagrant_apt_pkgs:
+  # Vagrant-libvirt plugin dependencies.
+  # https://github.com/vagrant-libvirt/vagrant-libvirt#installation
+  - ebtables
+  - dnsmasq-base
+  - libxslt-dev
+  - libxml2-dev
+  - libvirt-dev
+  - zlib1g-dev
+  - ruby-dev
+  - vagrant

@@ -1,0 +1,81 @@
+---
+# Since the port for the sshd is changed during provisioning, Ansible needs to
+# know which port to use for repeated runs of the playbook.
+# Ref: https://dmsimard.com/2016/03/15/changing-the-ssh-port-with-ansible/
+
+
+# First check if default SSH port is open.
+# Do not assume the `inventory_host` is resolvable and delay 4 seconds at
+# start.
+# NOTE: in most web resources `inventory_host` is used. This did not work and
+# it seemed to be because the alias used in the inventory is not natively a
+# DNS name, therefore didn't resolve.
+# Why Ansible doesn't resolve like it does normally is not clear. Therefore we
+# look up the ansible_host in the hostvars of the inventory_hostname.
+
+# - name: Get variable
+#   include_vars:
+#     file: ../vars/main.yml
+#     name: host_to_wait_for
+- name: SSH port check | back up configured SSH port
+  set_fact:
+    ansible_port_custom: "{{ ansible_port }}"
+
+- name: SSH port check | check if default SSH port is open
+  local_action:
+    module: wait_for
+    host: "{{ host_to_wait_for }}"
+    # host: "{{ inventory_hostname }}"
+    port: 22
+    state: started
+    connect_timeout: 3
+    timeout: 8
+    delay: 3
+  ignore_errors: true
+  register: ssh_default_result
+
+# - name: result display
+#   debug:
+#     var: ssh_default_result
+
+- name: SSH port check | continue with default SSH port
+  set_fact:
+    ansible_port: 22
+    ansible_ssh_private_key_file: "{{ ansible_ssh_private_key_file_default }}"
+  when:
+    - ssh_default_result is defined
+    - ssh_default_result.state is defined
+    - ssh_default_result.state == "started"
+  register: ssh_port_is_set
+
+# If the default SSH port doesn't seem to be open, use the custom one. It was
+# observed that the state was not defined when the port wasn't reachable.
+- name: SSH port check | check if custom SSH port is open
+  local_action:
+    module: wait_for
+    host: "{{ host_to_wait_for }}"
+    port: "{{ ansible_port_custom }}"
+    connect_timeout: 3
+    timeout: 7
+    delay: 3
+  ignore_errors: true
+  when:
+    - ssh_default_result is defined
+    - (ssh_default_result.state is defined and ssh_default_result.state != "started") or (ssh_default_result.failed == true)
+  register: ssh_custom_result
+
+- name: SSH port check | custom SSH port {{ ansible_port }} is configured and open
+  set_fact:
+    ansible_port: "{{ ansible_port_custom }}"
+    ansible_ssh_private_key_file: "{{ ansible_ssh_private_key_file_custom }}"
+  when:
+    - ssh_custom_result is defined
+    - ssh_custom_result.state is defined
+    - ssh_custom_result.state == "started"
+  register: ssh_port_is_set
+
+- name: SSH port check | SSH port not determined
+  fail:
+    msg: "SSH port is neither 22 nor {{ ansible_port }}"
+  when:
+    - ssh_port_is_set is undefined

@@ -1,0 +1,86 @@
+---
+apt_pkgs_common:
+  - build-essential
+  - chrony
+  - curl
+  - ca-certificates
+  - gnupg2
+  - lldb
+  - gcc
+  - libc6-dev
+  - unattended-upgrades
+  - git
+  - gitk
+  - meld
+  - tlp
+  - tlp-rdw
+  - ufw
+  - gparted
+  - zsh
+  - whois
+  - htop
+  - minicom
+
+# The debconf module doesn't properly set the locales.
+# https://stackoverflow.com/a/54335992
+# en_US.UTF-8, en_US ISO-8859-1, en_US.ISO-8859-15 ISO-8859-15
+# de_CH ISO-8859-1, de_CH.UTF-8 UTF-8
+locales_to_generate:
+  - en_US
+  - de_CH
+
+locales_default:
+  # https://man7.org/linux/man-pages/man5/locale.5.html
+  # https://wiki.debian.org/Locale
+  # https://linuxhint.com/locales_debian/
+  # Determines the default locale in the absence of other locale related
+  # environment variables.
+  - key: LANG
+    value: en_US.UTF-8
+  # List of fallback message translation languages (GNU only).
+  - key: LANGUAGE
+    value: en_US:en
+  ###   POSIX standard   ######################################################
+  # Collation (sort)order.
+  - key: LC_COLLATE
+    value: en_US.UTF-8
+  # Character classification and case conversion.
+  - key: LC_CTYPE
+    value: de_CH.UTF-8
+  # Format of interactive words and responses.
+  - key: LC_MESSAGES
+    value: en_US.UTF-8
+  # Monetary formatting.
+  - key: LC_MONETARY
+    value: de_CH.UTF-8
+  # Numeric formatting.
+  - key: LC_NUMERIC
+    value: en_US.UTF-8
+  # Date and time formats.
+  - key: LC_TIME
+    value: de_CH.UTF-8
+  ###   GNU C Library   #######################################################
+  # Convention used for formatting of street or postal addresses.
+  - key: LC_ADDRESS
+    value: de_CH.UTF-8
+  # Metadata about the locale information.
+  - key: LC_IDENTIFICATION
+    value: de_CH.UTF-8
+  # Default measurement system used within the region.
+  - key: LC_MEASUREMENT
+    value: de_CH.UTF-8
+  # Name formats.
+  - key: LC_NAME
+    value: de_CH.UTF-8
+  # Default paper size for region.
+  - key: LC_PAPER
+    value: de_CH.UTF-8
+  # Conventions used for representation of telephone numbers.
+  - key: LC_TELEPHONE
+    value: de_CH.UTF-8
+  # Determines how responses (such as Yes and No) appear in the local language.
+  - key: LC_RESPONSE
+    value: en_US.UTF-8
+  # Overrides all other locale variables (except LANGUAGE). Do not set!
+  # - key: LC_ALL
+  #   value: ''

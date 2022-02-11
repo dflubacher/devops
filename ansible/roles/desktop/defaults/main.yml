@@ -1,0 +1,16 @@
+---
+apt_pkgs_desktop:
+  - tmux
+  - vlc
+  - keepass2
+  - yubikey-luks
+
+vs_code_extensions_to_install:
+  - "ms-vscode.cpptools"
+  - "ms-python.python"
+  - "ms-python.vscode-pylance"
+  - "ms-vscode-remote.vscode-remote-extensionpack"
+  # - "ms-kubernetes-tools.vscode-kubernetes-tools"
+  - "ms-azuretools.vscode-docker"
+  - "redhat.ansible"
+  - "eamodio.gitlens"

@@ -1,0 +1,36 @@
+---
+# =============================================================================
+# Provisioning script for Ubuntu 20.04 on Latitude 7490
+# Tested for 20.04.3 on qemu.
+# v0.1.0, 2022-02-10
+# To run it on localhost:
+#   1. Install poetry (using shell script run at first login)
+#   2. Download/copy ansible folder to target.
+#   3. `poetry update` (to install Ansible).
+#   4. `poetry run ansible-playbook -i ansible/staging --ask-become-pass \
+#       ansible/desktop.yaml --limit "lat7490"
+# -----------------------------------------------------------------------------
+
+- hosts: desktops
+
+  pre_tasks:
+    - name: Update apt cache if needed
+      become: true
+      apt:
+        upgrade: yes
+        update_cache: yes
+        cache_valid_time: 3600
+
+  post_tasks:
+    - name: Clean up apt
+      become: true
+      apt:
+        update_cache: yes
+        upgrade: yes
+        autoremove: yes
+        autoclean: yes
+
+  roles:
+    - common
+    - virtualization
+    - desktop

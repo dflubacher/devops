@@ -1,0 +1,73 @@
+---
+
+- name: Ensure group "ssh-access" exists
+  become: true
+  ansible.builtin.group:
+    name: ssh-access
+    state: present
+
+- name: add user to ssh-access group
+  become: true
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: ssh-access
+    append: yes
+
+# In the default sshd config, some settings appear more than once, but only
+# one of those lines in uncommented. Therefore use `^` in regexp.
+- name: Harden sshd configuration
+  become: true
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+    validate: 'sshd -t -f %s'
+  loop:
+    - regexp: "^AllowGroups.*"
+      line: "AllowGroups ssh-access"
+    - regexp: "^PasswordAuthentication.*"
+      line: "PasswordAuthentication no"
+    - regexp: "^PermitRootLogin.*"
+      line: "PermitRootLogin no"
+    - regexp: "^Port.*"
+      line: "Port {{ ansible_port_custom }}"
+    - regexp: "^X11Forwarding.*"
+      line: "X11Forwarding no"
+  notify: Restart sshd
+
+- name: Restart sshd right now
+  meta: flush_handlers
+
+# SSHD service is restarted, before any other remote task, change the port
+# Ansible is using. It is not strictly necessary, as it seems restarting sshd
+# doesn't interrupt open connections and therefore the playbook could be
+# finished on the open connection.
+- name: Set ansible_port to configured ssh port
+  set_fact:
+    ansible_port: "{{ ansible_port_custom }}"
+    ansible_ssh_private_key_file: "{{ ansible_ssh_private_key_file_custom }}"
+
+
+# If the default SSH port doesn't seem to be open, use the custom one.
+# - name: Wait for reconnect
+#   local_action:
+#     module: wait_for
+#     host: "{{ host_to_wait_for }}"
+#     port: "{{ ansible_port_custom }}"
+#     connect_timeout: 3
+#     timeout: 7
+#     delay: 3
+
+- name: Allow sshd traffic from local network
+  become: true
+  community.general.ufw:
+    rule: allow
+    from_ip: "{{ item }}"
+    proto: tcp
+    to_ip: any
+    to_port: "{{ ansible_port_custom }}"
+  loop:
+    - "192.168.0.0/16"
+  notify:
+    - Enable ufw

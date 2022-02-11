@@ -1,0 +1,120 @@
+---
+##### KVM/QEMU/libvirt/Vagrant.
+# https://help.ubuntu.com/community/KVM/Installation
+# Added qemu-efi and OVMF to have UEFI support, virt-manager to have a GUI,
+# and libvirt-dev as it was required for the vagrant plugin to get
+# installed. Added cloud-image-utils for merging cloud-init configuration
+# files. libosinfo for os-variant queries.
+- name: Install KVM for Ubuntu
+  become: true
+  apt:
+    pkg: "{{ virt_apt_pkgs }}"
+    state: latest
+    install_recommends: no
+
+- name: Ensure group "libvirt" exists
+  become: true
+  ansible.builtin.group:
+    name: libvirt
+    state: present
+
+- name: Add user to "libvirt" group
+  become: true
+  ansible.builtin.user:
+    user: "{{ ansible_user }}"
+    groups: libvirt
+    append: yes
+
+# https://www.vagrantup.com/downloads
+- name: Install Vagrant apt repository and signing key (add apt signing key to keyring file)
+  become: true
+  ansible.builtin.apt_key:
+    url: https://apt.releases.hashicorp.com/gpg
+    keyring: /etc/apt/trusted.gpg.d/releases.hashicorp.gpg
+
+- name: Enable Vagrant auto-updating using the system's package manager
+  become: true
+  ansible.builtin.apt_repository:
+    repo: deb [arch=amd64,arm64,armhf signed-by=/etc/apt/trusted.gpg.d/releases.hashicorp.gpg] https://apt.releases.hashicorp.com focal main
+    state: present
+    filename: vagrant
+
+# - name: Uncomment deb-src in sources.list for Ubuntu using sed
+#   become: true
+#   command:
+#     # Find all lines not ending with 'partner', but beginning with '# deb-src'.
+#     # https://stackoverflow.com/a/12178023
+#     cmd: sed -i "/partner$/! s/^# deb-src \(.*\)/deb-src \1/" /etc/sources.list
+#   when: ansible_facts['distribution'] == 'Ubuntu'
+
+# This should be the effectively equivalent syntax for Python regexp, except
+# that the pattern `partner` is not limited to line end.
+- name: Uncomment deb-src in sources.list for Ubuntu
+  become: true
+  replace:
+    path: /etc/apt/sources.list
+    regexp: '(?!.*partner.*)^# deb-src (.*)'
+    replace: 'deb-src \1'
+  when: ansible_facts['distribution'] == 'Ubuntu'
+
+- name: Install Vagrant build dependencies
+  become: true
+  apt:
+    pkg: "{{ vagrant_build_deps }}"
+    state: build-dep
+    update_cache: yes
+
+- name: Install Vagrant and related packages
+  become: true
+  apt:
+    pkg: "{{ vagrant_apt_pkgs }}"
+    state: latest
+    update_cache: yes
+
+# https://www.vagrantup.com/docs/cli/plugin#plugin-list
+- name: Check installed Vagrant plugins
+  command:
+    cmd: vagrant plugin list
+  register: vagrant_plugins
+
+- name: Install Vagrant plugin for libvirt
+  command:
+    cmd: vagrant plugin install vagrant-libvirt
+  when: "'vagrant-libvirt' not in vagrant_plugins.stdout"
+
+# - name: Comment deb-src in sources.list for Ubuntu again
+#   become: true
+#   replace:
+#     path: /etc/apt/sources.list
+#     regexp: '^(deb-src.*)'
+#     replace: '# \1'
+#   when: ansible_facts['distribution'] == 'Ubuntu'
+
+##### Docker.
+- name: Download Docker installer
+  become: true
+  get_url:
+    url: https://get.docker.com
+    dest: /tmp/docker-installer
+    mode: "0755"
+
+# TODO: Is the executable always at this location?
+- name: Execute the Docker installer
+  become: true
+  command:
+    cmd: /tmp/docker-installer
+  args:
+    creates: /usr/bin/docker
+
+- name: Add current user to Docker group
+  become: true
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+
+- name: Enable Docker daemon
+  become: true
+  service:
+    name: docker
+    state: started

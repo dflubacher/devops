@@ -1,0 +1,2 @@
+---
+host_to_wait_for: '{{ hostvars[inventory_hostname]["ansible_host"] }}'
