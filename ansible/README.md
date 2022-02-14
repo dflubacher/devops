@@ -24,6 +24,7 @@ Currently Ansible is the selected provisioning tool in order to learn more about
 
 ### Useful references
 - [Ansible special variables](https://docs.ansible.com/ansible/latest/reference_appendices/special_variables.html)
+- [Ansible vault how-to](https://www.digitalocean.com/community/tutorials/how-to-use-vault-to-protect-sensitive-ansible-data)
 
 ## Notes
 - Use `export ANSIBLE_HOST_KEY_CHECKING=False` to suppress the interactive prompt regarding key verification. It is not necessary for initial provisioning, only later.

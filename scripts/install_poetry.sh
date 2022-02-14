@@ -8,6 +8,9 @@
 # Python 3 should be installed by default on Debian 11, Ubuntu >18.04 and Linux
 # Mint 20.
 
+# Ensure apt is in non-interactive to avoid prompts.
+export DEBIAN_FRONTEND=noninteractive
+
 echo
 echo "##### Installing pip for Python 3 with apt, sudo required:"
 # TODO: python3.8-venv is required, but there should be a solution:

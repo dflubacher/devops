@@ -26,7 +26,7 @@ bazel_path=$(which bazel)
 # If installed, this returns something like /usr/bin/bazel or
 # /usr/local/bin/bazel.
 
-# Step 3: in case bazel is installed, create backup of raw bazel
+# Step 3: back up bazel in case it is already present on system.
 if ! [ -z "${bazel_path}" ]; then
     echo "### Bazel was found, backing it up."
     sudo mv "${bazel_path}" /usr/bin/bazel_orig
@@ -38,9 +38,7 @@ fi
 echo
 echo "##### Configuring Bazelisk..."
 sudo mv /tmp/bazelisk-linux-amd64 "${bazel_path}"
-# make it executable
 sudo chmod 755 "${bazel_path}"
-# adapt ownership
 sudo chown root:root "${bazel_path}"
 
 # If you get signature issues like this:
