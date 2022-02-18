@@ -102,6 +102,21 @@
 #     cmd: dpkg-reconfigure -f noninteractive unattended-upgrades
 #     creates: /etc/apt/apt.conf.d/20auto-upgrades
 
+##### Bazel/Bazelisk.
+- name: Download latest bazel(isk) installer
+  become: true
+  get_url:
+    url: https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64
+    dest: /usr/bin/bazel
+    mode: "0755"
+
+- name: Downloading buildifier for formatting BUILD files
+  become: true
+  get_url:
+    url: https://github.com/bazelbuild/buildtools/releases/latest/download/buildifier-linux-amd64
+    dest: /usr/local/bin/buildifier
+    mode: "0755"
+
 ##### oh-my-zsh.
 # This is not idempotent, but using the native installation script I doubt
 # it can be made idempotent.
