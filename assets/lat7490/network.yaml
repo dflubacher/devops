@@ -31,18 +31,18 @@ autoinstall:
     # renderer: NetworkManager
     # renderer: networkd
     ethernets:
-      ${IFACE_ETH1}:
+      ${IFACE_ETH0}:
         dhcp4: true
         # dhcp6: true
     wifis:
-      ${IFACE_WIFI1}:
+      ${IFACE_WIFI0}:
         dhcp4: true
         # dhcp6: true
         access-points:
+          "${WIFI0_SSID}":
+            password: "${WIFI0_PW}"
           "${WIFI1_SSID}":
             password: "${WIFI1_PW}"
-          "${WIFI2_SSID}":
-            password: "${WIFI2_PW}"
 
   late-commands:
     # For the target system, use NetworkManager to manage all interfaces.

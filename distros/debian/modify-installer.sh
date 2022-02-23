@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # =============================================================================
 # Debian installer with preseed file.
-# This script downloads a debian installer file and creates an iso file that
-# can be extracted to a bootable thumb drive.
+# This script downloads a debian installer file, copies preseed configurations
+# into it and creates an iso file that can be extracted to a bootable thumb
+# drive.
 # -----------------------------------------------------------------------------
 
 

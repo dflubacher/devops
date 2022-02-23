@@ -46,7 +46,7 @@
 - name: Set ansible_port to configured ssh port
   set_fact:
     ansible_port: "{{ ansible_port_custom }}"
-    ansible_ssh_private_key_file: "{{ ansible_ssh_private_key_file_custom }}"
+    # ansible_ssh_private_key_file: "{{ ansible_ssh_private_key_file_custom }}"
 
 
 # If the default SSH port doesn't seem to be open, use the custom one.

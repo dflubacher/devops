@@ -1,0 +1,22 @@
+####   Define the network configuration   #####################################
+# Debian installer seems to use netcfg during installation which works with
+# preseeding, however it seems not to work on the installed system and handling
+# roaming is not convenient (Debian was admittedly not designed for Wifi
+# roaming). Therefore use NetworkManager and netplan.io to handle networking.
+network:
+  version: 2
+  renderer: NetworkManager
+  # renderer: networkd
+  ethernets:
+    ${IFACE_ETH0}:
+      dhcp4: true
+      # dhcp6: true
+  wifis:
+    ${IFACE_WIFI0}:
+      dhcp4: true
+      # dhcp6: true
+      access-points:
+        "${WIFI0_SSID}":
+          password: "${WIFI0_PW}"
+        "${WIFI1_SSID}":
+          password: "${WIFI1_PW}"

@@ -11,6 +11,6 @@ autoinstall:
   # to setup multiple users (prefer to use Ansible for this).
   identity:
     hostname: ${OS_HOSTNAME}
-    username: ${USER1_USERNAME}
-    realname: ${USER1_REALNAME}
-    password: ${USER1_PW_CRYPTED}
+    username: ${USER0_USERNAME}
+    realname: ${USER0_REALNAME}
+    password: ${USER0_PW_CRYPTED}

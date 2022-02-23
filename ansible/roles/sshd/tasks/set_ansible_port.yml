@@ -41,7 +41,7 @@
 - name: SSH port check | continue with default SSH port
   set_fact:
     ansible_port: 22
-    ansible_ssh_private_key_file: "{{ ansible_ssh_private_key_file_default }}"
+    # ansible_ssh_private_key_file: "{{ ansible_ssh_private_key_file_default }}"
   when:
     - ssh_default_result is defined
     - ssh_default_result.state is defined
@@ -67,7 +67,7 @@
 - name: SSH port check | custom SSH port {{ ansible_port }} is configured and open
   set_fact:
     ansible_port: "{{ ansible_port_custom }}"
-    ansible_ssh_private_key_file: "{{ ansible_ssh_private_key_file_custom }}"
+    # ansible_ssh_private_key_file: "{{ ansible_ssh_private_key_file_custom }}"
   when:
     - ssh_custom_result is defined
     - ssh_custom_result.state is defined

@@ -4,12 +4,11 @@
 # #############################################################################
 ansible_user: debian
 ansible_connection: ssh
-ansible_port: 2842
+ansible_port: 2222
 
 become_user: root
 
-ansible_ssh_private_key_file_default: ~/.ssh/id_rsa_ansible
-ansible_ssh_private_key_file_custom: ~/.ssh/id_rsa_ansible
+ansible_ssh_private_key_file: ~/.ssh/id_rsa_ansible
 
 git_username: Debian Bullseye
 git_email: debian@email.com
