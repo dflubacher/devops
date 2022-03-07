@@ -58,7 +58,7 @@ locales_default:
     value: en_US.UTF-8
   # Date and time formats.
   - key: LC_TIME
-    value: de_CH.UTF-8
+    value: en_GB.UTF-8
   ###   GNU C Library   #######################################################
   # Convention used for formatting of street or postal addresses.
   - key: LC_ADDRESS

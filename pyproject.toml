@@ -7,10 +7,13 @@ authors = ["df"]
 [tool.poetry.dependencies]
 python = "^3.8.0"
 psutil = "^5.9.0"
-ansible = "^5.3.0"
+ansible = "^5.4.0"
+pyyaml = "^6.0.0"
 
 [tool.poetry.dev-dependencies]
+flake8 = "^4.0.1"
 black = "^22.1.0"
+isort = "^5.10.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -18,3 +21,20 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length=79
+
+[tool.isort]
+profile = "black"
+include = '\\.pyi?$'
+exclude = '''
+/(
+    \\.git
+  | \\.hg
+  | \\.mypy_cache
+  | \\.tox
+  | \\.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''

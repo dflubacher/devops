@@ -3,7 +3,7 @@
 ## Why Ansible
 Currently Ansible is the selected provisioning tool in order to learn more about it.
 
-## Priviledge escalation
+## Privilege escalation
 - Ansible could be run directly as root and configure all other users
     * Would simplify the setup
     * sshd: disable root login after provisioning --> how could ansible run a playbook twice?
@@ -27,7 +27,7 @@ Currently Ansible is the selected provisioning tool in order to learn more about
 - [Ansible vault how-to](https://www.digitalocean.com/community/tutorials/how-to-use-vault-to-protect-sensitive-ansible-data)
 
 ## Notes
-- Use `export ANSIBLE_HOST_KEY_CHECKING=False` to suppress the interactive prompt regarding key verification. It is not necessary for initial provisioning, only later.
+- Use `export ANSIBLE_HOST_KEY_CHECKING=False` to suppress the interactive prompt regarding host verification. It is not necessary for initial provisioning, only later.
 - repeatedly provisioning the system might require to clear the `known_hosts` file:
     ```sh
     ssh-keygen -f "${HOME}/.ssh/known_hosts" -R "192.168.122.124"

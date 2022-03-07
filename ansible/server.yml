@@ -1,6 +1,6 @@
 ---
 # =============================================================================
-# Provisioning script for Debian 11 on qemu (emulating nuc8i7beh)
+# Provisioning script for Debian 11 on NUC8i7BEH
 # v0.1.0, 2022-02-11
 # Cmd: `poetry run ansible-playbook -i ansible/staging ansible/server.yml \
 #       --limit "qemu_nuc8i7beh" --ask-become-pass``

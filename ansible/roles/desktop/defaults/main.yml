@@ -1,6 +1,9 @@
 ---
 apt_pkgs_desktop:
   - tmux
+  # Somehow vscode needed this package to display pyplots, as it otherwise uses
+  # `agg` as the matplotlib backend:
+  - python3-tk
   - vlc
   - keepass2
   - yubikey-luks
