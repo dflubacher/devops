@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # =============================================================================
-# Python
-# v0.2.0 2022-03-25
+# Python3 pip
+# v0.1.0 2022-03-25
 # -----------------------------------------------------------------------------
 
 # Python 3 should be installed by default on Debian 11, Ubuntu >18.04 and Linux
@@ -29,18 +29,3 @@ if [ $(getent passwd ${USER} | awk -F: '{print $NF}' | grep zsh | wc -l) -gt 0 ]
 else
     python3 -m pip completion --bash >> ${HOME}/.profile
 fi
-
-
-# =============================================================================
-# Poetry installation according:
-# https://python-poetry.org/docs/master/#installation
-
-echo
-echo "##### Installing Poetry..."
-pushd /tmp
-curl -sSL https://install.python-poetry.org | python3 -
-
-popd
-
-# Either logout/login or source ${HOME}/.profile to set up poetry in the
-# current shell.

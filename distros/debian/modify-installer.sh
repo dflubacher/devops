@@ -36,8 +36,10 @@ declare -r SCRIPT_DIR=$(dirname "$0") > /dev/null
 # The Wifi usually needs some firmware (Debian calls it non-free firmware),
 # therefore use the netinstaller with some firmware.
 # See https://wiki.debian.org/Firmware
-ISO_WEBLINK="https://cdimage.debian.org/cdimage/unofficial/non-free/cd-including-firmware/current/amd64/iso-cd/firmware-11.2.0-amd64-netinst.iso"
-# ISO_WEBLINK="https://cdimage.debian.org/cdimage/unofficial/non-free/cd-including-firmware/11.2.0+nonfree/amd64/iso-cd/firmware-11.2.0-amd64-netinst.iso"
+# Check here for latest:
+# https://cdimage.debian.org/cdimage/unofficial/non-free/cd-including-firmware/current/amd64/iso-cd/
+ISO_WEBLINK="https://cdimage.debian.org/cdimage/unofficial/non-free/cd-including-firmware/current/amd64/iso-cd/firmware-11.3.0-amd64-netinst.iso"
+# ISO_WEBLINK="https://cdimage.debian.org/cdimage/unofficial/non-free/cd-including-firmware/11.3.0+nonfree/amd64/iso-cd/firmware-11.3.0-amd64-netinst.iso"
 
 ISO_ORIG=/tmp/debian-amd64.iso
 # If ISO_FILES structure is changed, check clean up condition in main().
@@ -66,7 +68,7 @@ source_and_merge() {
    fi
 
    # Expand path and jump to directory of the VARS_FILE to expand all paths
-   # defined therin.
+   # defined therein.
    local VARS_ENV=$(realpath "${1}")
    local VARS_ENV_DIR=$(dirname ${VARS_ENV})
 

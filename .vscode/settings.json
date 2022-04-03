@@ -1,0 +1,12 @@
+{
+    "python.poetryPath": "poetry",
+    "editor.formatOnSave": true,
+    "python.formatting.provider": "black",
+    "python.linting.flake8Enabled": true,
+    "[python]": {
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true,
+        }
+    },
+    "python.terminal.activateEnvironment": false
+}
