@@ -42,7 +42,14 @@ virt-manager -c "qemu+ssh://<user>@<address>:<port>/system?keyfile=/path/to/iden
 ```sh
 sudo virt-copy-out -d <VM name> /var/log/installer/autoinstall-user-data /tmp
 ```
-Even works if path is on dm_crypt.
+Even works if path is on dm_crypt. This requires libguestfs-tools.
+
+### Copying in to VM
+Usually VM should be stopped in order not to corrupt the filesystem, and sudo might be required. No flag for folders necessary.
+```sh
+sudo virt-copy-in -d debian11_preseed /tmp/SetupSTM32CubeMX-6.5.0 /home/debian/
+```
+This will place the file in the debian home folder with `debian:debian` ownership.
 
 
 ## Debian
