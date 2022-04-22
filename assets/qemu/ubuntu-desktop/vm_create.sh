@@ -9,8 +9,8 @@
 
 ###   VM configuration   ######################################################
 # Optional arguments for libvirt commands.
-NAME='ubuntu-focal-autoinstall'
-DESCRIPTION='Ubuntu 20.04 autoinstalled'
+NAME='ubuntu-desktop-autoinstall'
+DESCRIPTION='Ubuntu desktop autoinstalled'
 VCPUS=2
 MEMORY=2048
 # Check `man truncate` for allowed SIZE argument.
@@ -39,7 +39,7 @@ declare -r SCRIPT_DIR=$(dirname "$0") > /dev/null
 main() {
     pushd ${SCRIPT_DIR} > /dev/null
 
-    [ -d "${STORAGE_DIR}" ] || mkdir "${STORAGE_DIR}"
+    [ -d "${STORAGE_DIR}" ] || sudo mkdir "${STORAGE_DIR}"
     sudo chown root:libvirt "${STORAGE_DIR}"
     sudo chmod 775 "${STORAGE_DIR}"
 
@@ -55,6 +55,8 @@ main() {
     # Create storage file.
     truncate -s "${STORAGE_SIZE}" "${storage_file}"
 
+    # The os-variant could be updated with osinfo-db-tools, but otherwise just
+    # use the latest available.
     if ${MACVTAP}; then
         virt-install --name "${NAME}" --description "${DESCRIPTION}" \
                     --memory ${MEMORY} \

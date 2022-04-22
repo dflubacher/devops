@@ -1,8 +1,8 @@
 ---
 # =============================================================================
-# Provisioning script for Ubuntu 20.04 on Latitude 7490
-# Tested for 20.04.3 on qemu.
-# v0.1.0, 2022-02-10
+# Provisioning script for Ubuntu 22.04 on Latitude 7490
+# Tested for 22.04 on qemu.
+# v0.1.0, 2022-04-22
 # To run it on localhost:
 #   1. Install poetry (using shell script run at first login)
 #   2. Download/copy ansible folder to target.

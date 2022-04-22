@@ -7,11 +7,11 @@ TODO: check if this [Red Hat installation instructions](https://access.redhat.co
 ### Normal setup
 Create storage:
 ```sh
-truncate -s 30G ~/vm/focal30.img
+truncate -s 30G ~/vm/jammy30.img
 ```
 
 ```sh
-virt-install --name "ubuntu2004_autoinstall" --description "Ubuntu 20.04 autoinstall" --memory 2048 --vcpus=2 --cpu host --boot loader=/usr/share/OVMF/OVMF_CODE.fd --disk path=~/vm/focal30.img,format=raw,device=disk,bus=virtio,cache=none --graphics vnc,listen=0.0.0.0 --cdrom /tmp/ubuntu-amd64-autoinstall.iso --hvm --os-variant=ubuntu20.04 --noautoconsole
+virt-install --name "ubuntu2204_autoinstall" --description "Ubuntu 22.04 autoinstall" --memory 2048 --vcpus=2 --cpu host --boot loader=/usr/share/OVMF/OVMF_CODE.fd --disk path=~/vm/jammy30.img,format=raw,device=disk,bus=virtio,cache=none --graphics vnc,listen=0.0.0.0 --cdrom /tmp/ubuntu-amd64-autoinstall.iso --hvm --os-variant=ubuntu20.04 --noautoconsole
 ```
 Command assumes `ovmf` package installed.
 
@@ -20,12 +20,12 @@ NOTES:
 
 ### Autoinstall (user-data and meta-data) in separate image.
 ```sh
-sudo virt-install --name "ubuntu2004_autoinstall" --description "Ubuntu 20.04 autoinstall" --memory 2048 --vcpus=2 --cpu host --boot loader=/usr/share/OVMF/OVMF_CODE.fd --disk path=/tmp/focal30.img,format=raw,device=disk,bus=virtio,cache=none --disk path=/tmp/seed.iso,format=raw,device=disk,bus=virtio,cache=none --graphics vnc,listen=0.0.0.0 --cdrom /tmp/ubuntu-amd64.iso --hvm --os-variant=ubuntu20.04 --noautoconsole
+sudo virt-install --name "ubuntu2204_autoinstall" --description "Ubuntu 22.04 autoinstall" --memory 2048 --vcpus=2 --cpu host --boot loader=/usr/share/OVMF/OVMF_CODE.fd --disk path=/tmp/jammy30.img,format=raw,device=disk,bus=virtio,cache=none --disk path=/tmp/seed.iso,format=raw,device=disk,bus=virtio,cache=none --graphics vnc,listen=0.0.0.0 --cdrom /tmp/ubuntu-amd64.iso --hvm --os-variant=ubuntu20.04 --noautoconsole
 ```
 
 ### Teardown:
 ```sh
-sudo virsh undefine --remove-all-storage ubuntu2004_autoinstall
+sudo virsh undefine --remove-all-storage ubuntu2204_autoinstall
 ```
 
 ### virt-manager remote connection
@@ -57,7 +57,7 @@ This will place the file in the debian home folder with `debian:debian` ownershi
 sudo virt-install --name "debian11-preseed" --description "Debian 11 preseeded" --memory 2048 --vcpus=2 --cpu host --boot loader=/usr/share/OVMF/OVMF_CODE.fd --disk path=/home/jefe/pool/bullseye30g.img,format=raw,device=disk,bus=virtio,cache=none --graphics vnc,listen=0.0.0.0 --cdrom ~/debian-amd64-preseed.iso --hvm --os-variant=debian10 --noautoconsole
 ```
 
-To get valid os-variants [libosinfo_bin](https://packages.ubuntu.com/focal/libosinfo-bin) is needed.
+To get valid os-variants [libosinfo_bin](https://packages.ubuntu.com/jammy/libosinfo-bin) is needed.
 Unfortunately neither the package for debian nor ubuntu has Bullseye in it, therefore use the next best.
 ```sh
 osinfo-query os

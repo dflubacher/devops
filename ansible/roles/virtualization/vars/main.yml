@@ -1,7 +1,8 @@
 ---
 # qemu-utils contains qemu-img.
 # virt-manager is useful for desktop systems, for servers virtinst and
-# python3-libvirt should be enough.
+# python3-libvirt should be enough. libguestfs-tools is useful for copying
+# in and out files.
 virt_apt_pkgs:
   - qemu
   - qemu-kvm

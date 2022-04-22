@@ -35,7 +35,7 @@
 - name: Enable Vagrant auto-updating using the system's package manager
   become: true
   ansible.builtin.apt_repository:
-    repo: deb [arch=amd64,arm64,armhf signed-by=/etc/apt/trusted.gpg.d/releases.hashicorp.gpg] https://apt.releases.hashicorp.com focal main
+    repo: deb [arch=amd64,arm64,armhf signed-by=/etc/apt/trusted.gpg.d/releases.hashicorp.gpg] https://apt.releases.hashicorp.com jammy main
     state: present
     filename: vagrant
 
@@ -53,7 +53,7 @@
   become: true
   replace:
     path: /etc/apt/sources.list
-    regexp: '(?!.*partner.*)^# deb-src (.*)'
+    regexp: "(?!.*partner.*)^# deb-src (.*)"
     replace: 'deb-src \1'
   when: ansible_facts['distribution'] == 'Ubuntu'
 

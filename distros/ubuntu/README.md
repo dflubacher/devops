@@ -1,6 +1,6 @@
-# Simple Ubuntu 20.04 desktop using autoinstall
+# Simple Ubuntu 22.04 desktop using autoinstall
 The goals are to set up:
-- automated install of Ubuntu Desktop 20.04
+- automated install of Ubuntu Desktop 22.04
 - using Wifi or Ethernet
 - with minimum bloatware
 - Full Disk Encryption
@@ -12,7 +12,7 @@ Directions:
     * Desktop version seems not (yet?) to support autoinstall and preseeding using a Debian approach fails with kernel panic.
     * partitioning using [curtin notation](https://curtin.readthedocs.io/en/latest/topics/storage.html) (see storage.yaml in lat7490, qemu folder)
     * install poetry at first login (user land)
-    * Ubuntu 20.04 with Full Disk Encryption (single user therefore no separate $HOME folder encryption)
+    * Ubuntu 22.04 with Full Disk Encryption (single user therefore no separate $HOME folder encryption)
 - Ansible
     * run with local connection
 - No bloatware
@@ -65,31 +65,17 @@ The yubikey is not automatically enrolled during the setup. The setup script is 
 ### Google Chrome apt repository
 After running the playbook of lat7490, the google-chrome.list in `/etc/apt/apt.conf.d/` contains an additional line without `signed-by` (in contrast to the playbook one). This results in a conflict during `apt update`. Removing the unsigned line is not useful, as Google Chrome apparently replaces it.
 
-### swap file (blank screen/sleep freeze)
-Ubuntu 20.04 autoinstall configures the swap partition specified in storage.yaml correctly, including the entry in /etc/fstab. However, there also is an additional swap file at `/swap.img`. It seems that this causes problems at blank screen/sleep/suspend (freezes).
-
-How to check:
-- `free` has shown swap with about 4 GB larger than my swap partition.
-- `swapon -s` has shown two entries, `/swap.img` and `/dev/dm-2`
-- Entry in /etc/fstab for swap.img
-
-Workaround:
-- manual:
-    ```sh
-    swapoff /path/to/swap.img
-    ```
-- Ansible playbook using the mount module (see lat7490)
 ### Unable to use array variables in early- and late-commands
-ADDITIONAL_FILES and AUTOINSTALL_FILES file references defined in vars.env are only used by modify-installer.sh to copy them into the installer. The variables cannot be used in the autoinstall yaml files to copy them from the installer into the target system. Instead they have to be written out in the form `/cdrom/autoinstall/<basename.ext>` where basename.ext is the corresponding file name.
+ADDITIONAL_FILES and AUTOINSTALL_FILES file references defined in vars.env are only used by modify-installer.sh to copy them into the installer. The variables cannot be used in the autoinstall yaml files to copy them from the installer into the target system. Instead they have to be written out with their literal form `/cdrom/autoinstall/<basename.ext>` where `basename.ext` is the corresponding file name.
 
 ### Second terminal on first login
-TODO: check why it is called. Observed with latest daily build (2022-01-20)
+TODO: check why it is called.
 ### Locale generation
 Probably related to ubuntu-desktop-minimal, the settings dialog `Region & Language` seems empty/default.
-Ansible playbook is updated to install en_US and de_CH, but the formats need to be configured also.
+Ansible playbook is updated to install en_US, en_GB and de_CH, but the formats need to be configured also.
 ## Notes
 ### Debian style preseeding vs. autoinstall
-Ubuntu 20.04 server doesn't support preseed (debconf-set-selections) anymore. Tried preseeding with Desktop version, but to no avail (kernel panic).
+Since Ubuntu 20.04 preseeding (debconf-set-selections) is no longer supported. Tried preseeding with Desktop version, but to no avail (kernel panic).
 > NOTE: `autoinstall` keyword in grub.cfg doesn't prompt for automated installation, a thumb drive in the machine will therefore reformat and install everything without delay.
 
 After installation, the final version of the autoinstall configuration can be found at `/var/log/installer/autoinstall-user-data`. The LUKS password is set to a temporary file `/tmp/luks-key-abcdefgh`.
@@ -178,8 +164,25 @@ Slightly outdated:
 - [Mimacom blog](https://blog.mimacom.com/fde-with-yubikey/)
 - [techrepublic blog](https://www.techrepublic.com/article/how-to-use-a-yubikey-on-linux-with-an-encrypted-drive/)
 
+## Troubleshooting
+### swap file (blank screen/sleep freeze)
+If swap is not set to 0 in storage.yaml, Ubuntu might set up a swap file at `/swap.img`. It seems that this causes problems at blank screen/sleep/suspend (freezes).
 
+How to check:
+- `free` has shown swap with about 4 GB larger than my swap partition.
+- `swapon -s` has shown two entries, `/swap.img` and `/dev/dm-2`
+- Entry in /etc/fstab for swap.img
 
-
-
-
+Workaround:
+- set swap in curtin config:
+    ```yaml
+    swap:
+      #####   Disable swap file (use swap partition)   ########################
+      size: 0
+    ```
+- correction after installation:
+    * manual
+        ```sh
+        swapoff /path/to/swap.img
+        ```
+    * Ansible playbook using the mount module

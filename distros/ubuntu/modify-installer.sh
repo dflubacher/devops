@@ -2,7 +2,7 @@
 # =============================================================================
 # Create Ubuntu installer using autoinstall. (20.04 LTS)
 # This script
-#   1. downloads an Ubuntu 20.04 server iso.
+#   1. downloads an Ubuntu 22.04 server iso.
 #   2. copies autoinstall/cloud-init files into the installer (./autoinstall).
 #   3. copies additional customized scripts into the installer (./autoinstall)
 #      for use in the target system. These files can be used in late- and
@@ -45,9 +45,8 @@ declare -a ADDITIONAL_FILES_MERGED
 declare -r SCRIPT_DIR=$(dirname "$0") > /dev/null
 
 # URL of the original installer.
-# ISO_WEBLINK="http://releases.ubuntu.csg.uzh.ch/ubuntu/focal/ubuntu-20.04.3-desktop-amd64.iso"
-ISO_WEBLINK="https://cdimage.ubuntu.com/ubuntu-server/focal/daily-live/current/focal-live-server-amd64.iso"
-# ISO_WEBLINK="http://releases.ubuntu.csg.uzh.ch/ubuntu/focal/ubuntu-20.04.3-live-server-amd64.iso"
+# ISO_WEBLINK="http://releases.ubuntu.csg.uzh.ch/ubuntu/jammy/ubuntu-22.04-live-server-amd64.iso"
+ISO_WEBLINK="https://cdimage.ubuntu.com/ubuntu-server/daily-live/current/jammy-live-server-amd64.iso"
 
 # Working directories and output.
 ISO_ORIG=/tmp/ubuntu-amd64.iso
@@ -55,7 +54,6 @@ ISO_ORIG=/tmp/ubuntu-amd64.iso
 ISO_FILES=$(mktemp --tmpdir -d "ubuntu-amd64-files_XXX")
 ISO_NEW=/tmp/ubuntu-amd64-autoinstall.iso
 TMP_SCRATCH_DIR=$(mktemp --tmpdir -d "ubuntu-scratch-files_XXX")
-MBR_TEMPLATE=/tmp/isohdpfx.bin
 
 # http://www.gnu.org/savannah-checkouts/gnu/bash/manual/bash.html#Shell-Parameter-Expansion
 VARS_FILE=${VARS_FILE:-"assets/qemu/vars.env"}
@@ -93,7 +91,7 @@ source_and_merge() {
    # add the expanded paths to it.
    for arg in "${@:2}"; do
       array="${arg}[@]"
-      [ -v ${array} ] || { echo "${arg} is not set."; continue; }
+      [ -v ${array} ] || { echo "${VARS_ENV}: ${arg} is not set. Nothing to merge."; continue; }
 
       # array_ref=${tmp}"[@]"
       declare -n array_ref="${arg}_MERGED"
@@ -105,13 +103,17 @@ source_and_merge() {
       done
       # Remove name reference for next use.
       unset -n array_ref
+
+      # Need to unset original array, otherwise if the first array is longer
+      # than the second array of the same name, the exceeding entries remain.
+      unset ${arg}
    done
    popd > /dev/null
 }
 
 
 main() {
-   trap 'rm -rf "${TMP_SCRATCH_DIR}"; rm -rf "${MBR_TEMPLATE}"' EXIT
+   trap 'rm -rf "${TMP_SCRATCH_DIR}"; echo ; echo "Scratch folder cleaned."' EXIT
 
    # Parse arguments:
    # https://stackoverflow.com/a/14203146
@@ -176,13 +178,19 @@ main() {
    echo "##### Merge autoinstall files..."
 
    # Substitute all variables in the cloud-init files.
+   # This is not a good solution. The first requirement is to replace all 
+   # environmental variables which are defined but leave those that are not 
+   # defined (cut -d= -f1 | sed -e 's/^/$'). Secondly, do not replace host 
+   # environment variables (e.g. USER, HOME, etc).
+   # TODO: collect list of variables to substitute in a list.
+   vars_to_replace=$(env | cut -d= -f1 | sed -e 's/^/$/' | sed '/^$USER$\|^$HOME$\|^$PATH$/d')
    for ((i = 0; i < ${#AUTOINSTALL_FILES_MERGED[@]}; ++i)); do
       # Create file names in the temporary folder to fill in in the next step.
       USER_DATA[$i]=$(echo "${TMP_SCRATCH_DIR}/$(basename ${AUTOINSTALL_FILES_MERGED[$i]})")
       # Fill substituted cloud-init files in. Only those that are defined
       # otherwise some file local variables might be converted to blank.
       # https://unix.stackexchange.com/a/492778
-      cat ${AUTOINSTALL_FILES_MERGED[$i]} | envsubst "$(env | cut -d= -f1 | sed -e 's/^/$/')" > ${USER_DATA[$i]}
+      cat ${AUTOINSTALL_FILES_MERGED[$i]} | envsubst "${vars_to_replace}" > ${USER_DATA[$i]}
    done
 
 
@@ -243,14 +251,26 @@ main() {
          # If it is a directory, copy it to the scratch folder and substitute
          # variables in all files.
          # TODO: not robust enough. File not checked for:
-         #       - not binary
          #       - writable
          folder_name=$(basename ${ADDITIONAL_FILES_MERGED[$i]})
          cp -r ${ADDITIONAL_FILES_MERGED[$i]} "${TMP_SCRATCH_DIR}/"
 
-         for file_name in $(find "${TMP_SCRATCH_DIR}/${folder_name}" -type f); do
-            # Find should return absolute filepaths.
-            cat ${file_name} | envsubst "$(env | cut -d= -f1 | sed -e 's/^/$/')" > ${file_name}
+         # Find all files in the folder to substitute variables. `find` returns
+         # absolute paths, using printf with %P returns relative paths.
+         # See https://man7.org/linux/man-pages/man1/find.1.html.
+         for src_file_relative in $(find "${ADDITIONAL_FILES_MERGED[$i]}" -type f -printf "%P\n"); do
+    
+            dest_file_absolute="${TMP_SCRATCH_DIR}/${folder_name}/${src_file_relative}"
+
+            # `file --mime-type` returns something like 'text/plain' or
+            # 'application/zip', whereas `file --mime-encoding` returns the
+            # charset, e.g. 'us-ascii' or 'binary'. `-b` for omitting the file
+            # name. Only envsubstitute text files, leave others in scratch
+            # folder to be copied.
+            local encoding=$(file -b --mime-encoding "${ADDITIONAL_FILES_MERGED[$i]}/${src_file_relative}")
+            if [ $(echo ${encoding} | grep "ascii") ]; then
+               cat "${ADDITIONAL_FILES_MERGED[$i]}/${src_file_relative}" | envsubst "${vars_to_replace}" > "${dest_file_absolute}"
+            fi
          done
 
          # Now that all variables should be replaced, copy folder into the iso.
@@ -258,7 +278,7 @@ main() {
       
       elif [[ -f ${ADDITIONAL_FILES_MERGED[$i]} ]]; then
          ADD_FILENAMES[$i]=$(basename ${ADDITIONAL_FILES_MERGED[$i]})
-         cat ${ADDITIONAL_FILES_MERGED[$i]} | envsubst "$(env | cut -d= -f1 | sed -e 's/^/$/')" > "${ISO_FILES}/autoinstall/${ADD_FILENAMES[$i]}"
+         cat ${ADDITIONAL_FILES_MERGED[$i]} | envsubst "${vars_to_replace}" > "${ISO_FILES}/autoinstall/${ADD_FILENAMES[$i]}"
       else
          echo "${ADDITIONAL_FILES_MERGED[$i]} is not valid"
          exit 1
@@ -280,18 +300,19 @@ main() {
       sudo getfacl --absolute-names "${ISO_FILES}"/boot/grub/grub.cfg > "${TMP_SCRATCH_DIR}/acl_grub_cfg"
       sudo chmod +w "${ISO_FILES}"/boot/grub/grub.cfg
 
-      sudo getfacl --absolute-names "${ISO_FILES}"/isolinux/txt.cfg > "${TMP_SCRATCH_DIR}/acl_txt_cfg"
-      sudo chmod +w "${ISO_FILES}"/isolinux/txt.cfg
+      # Ubuntu 22.04 removed isolinux in favor of grub2.
+      # sudo getfacl --absolute-names "${ISO_FILES}"/isolinux/txt.cfg > "${TMP_SCRATCH_DIR}/acl_txt_cfg"
+      # sudo chmod +w "${ISO_FILES}"/isolinux/txt.cfg
 
       # Add menu entry for autoinstall after the line specifying the timeout.
       # It will be the entry selected by default.
       # NOTE: the `autoinstall` keyword suppresses a prompt after the POST
       #       screen and basically just rolls over any pre-installed OS.
       sudo sed -i "/^set timeout=.*/a menuentry \"Ubuntu autoinstall\" {\n\tset gfxpayload=keep\n\tlinux    \/casper\/vmlinuz \"ds=nocloud;s=\/cdrom\/autoinstall\/\"\tquiet autoinstall ---\n\tinitrd   \/casper\/initrd\n}" "${ISO_FILES}"/boot/grub/grub.cfg
+      # sudo sed -i "s/^default live/default autoinstall\nlabel autoinstall\n\tmenu label ^Ubuntu autoinstall\n\tkernel \/casper\/vmlinuz\n\tappend initrd=\/casper\/initrd quiet autoinstall ds=nocloud;s=\/cdrom\/autoinstall\/ ---/g" "${ISO_FILES}"/isolinux/txt.cfg
 
-      sudo sed -i "s/^default live/default autoinstall\nlabel autoinstall\n\tmenu label ^Ubuntu autoinstall\n\tkernel \/casper\/vmlinuz\n\tappend initrd=\/casper\/initrd quiet autoinstall ds=nocloud;s=\/cdrom\/autoinstall\/ ---/g" "${ISO_FILES}"/isolinux/txt.cfg
       sudo setfacl --restore="${TMP_SCRATCH_DIR}/acl_grub_cfg"
-      sudo setfacl --restore="${TMP_SCRATCH_DIR}/acl_txt_cfg"
+      # sudo setfacl --restore="${TMP_SCRATCH_DIR}/acl_txt_cfg"
 
       echo
       echo "##### Regenerating md5sum.txt..."
@@ -320,6 +341,8 @@ main() {
       # apparently it is no longer actively maintained. Therefore use xorriso.
       # https://wiki.debian.org/RepackBootableISO
 
+      # NOTE: To get info about original iso:
+      # xorriso -indev ubuntu-22.04-desktop-amd64.iso -report_el_torito as_mkisofs
 
       echo "## 1. Extracting MBR template from iso..."
       # Use the MBR_Template of the original iso.
@@ -327,28 +350,47 @@ main() {
       # https://help.ubuntu.com/community/InstallCDCustomization#Building_the_ISO_image
       # says 446.
       # Use 512 as the maximum: https://unix.stackexchange.com/a/254668
-      # dd if="${ISO_ORIG}" bs=1 count=446 of="${MBR_TEMPLATE}"
-      dd if="${ISO_ORIG}" bs=1 count=512 of="${MBR_TEMPLATE}"
+      # dd if="${ISO_ORIG}" bs=1 count=446 of="${TMP_SCRATCH_DIR}/isohdpfx.bin"
+      dd if="${ISO_ORIG}" bs=1 count=512 of="${TMP_SCRATCH_DIR}/isohdpfx.bin"
+      # dd if="${ISO_ORIG}" bs=1 count=432 of="${TMP_SCRATCH_DIR}/isohdpfx.bin"
 
       echo
-      echo "## 2. Creating new iso..."
-      xorriso -as mkisofs -r -V 'focal-autoinstall' \
-         -cache-inodes -J -l \
-         -isohybrid-mbr "${MBR_TEMPLATE}" \
+      echo "## 2. Extracting EFI partition..."
+      # The EFI partition is no longer (>=22.04) an .img file in boot/grub.
+      # Instead it needs to be extracted, see https://askubuntu.com/a/1403669.
+      # See NOTE above for info about original iso.
+      # Output shows:
+      # -append_partition 2 28732ac11ff8d211ba4b00a0c93ec93b --interval:local_fs:2855516d-2864011d::'/tmp/ubuntu-amd64.iso'
+      # blocksize of 512 is critical, with 1 it does not work.
+      dd if="${ISO_ORIG}" bs=512 skip=2855516 count=8496 of="${TMP_SCRATCH_DIR}/efi.img"
+
+      echo
+      echo "## 3. Creating new iso..."
+      
+      xorriso -as mkisofs -r -V 'jammy-autoinstall' \
+         --grub2-mbr "${TMP_SCRATCH_DIR}/isohdpfx.bin" \
+         --protective-msdos-label \
+         -partition_cyl_align off \
          -partition_offset 16 \
-         -c isolinux/boot.cat \
-         -b isolinux/isolinux.bin \
-            -no-emul-boot -boot-load-size 4 -boot-info-table \
+         --mbr-force-bootable \
+         -append_partition 2 28732ac11ff8d211ba4b00a0c93ec93b "${TMP_SCRATCH_DIR}/efi.img" \
+         -part_like_isohybrid \
+         -iso_mbr_part_type a2a0d0ebe5b9334487c068b6b72699c7 \
+         -c boot.catalog \
+         -b boot/grub/i386-pc/eltorito.img \
+            -no-emul-boot -boot-load-size 4 -boot-info-table --grub2-boot-info \
          -eltorito-alt-boot \
-         -e boot/grub/efi.img \
-            -no-emul-boot -isohybrid-gpt-basdat \
+         -e '--interval:appended_partition_2:::' \
+            -no-emul-boot -boot-load-size 8496 -isohybrid-gpt-basdat \
          -o "${ISO_NEW}" \
          "${ISO_FILES}"
 
 
       popd > /dev/null # ${ISO_FILES}
+
+      echo "NOTE: This is an autoinstall version, no prompt is displayed and"
+      echo "      any preinstalled OS will be overwritten if the Disk ID"
+      echo "      matches."
    }
-
-
 }
 main "$@"

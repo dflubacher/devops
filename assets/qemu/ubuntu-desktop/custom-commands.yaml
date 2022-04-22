@@ -6,11 +6,26 @@ merge_how:
     settings: [recurse_array]
 
 autoinstall:
-
   late-commands:
     # To save some hassle pass the Ansible folder into the target system.
     # Otherwise you either need to either passthrough a thumb drive with the
     # repository or download it.
+    # The initial-login is copied as part of the distro/ubuntu vars.env. That
+    # way the script is not duplicated in the assets.
     # https://refspecs.linuxfoundation.org/FHS_2.3/fhs-2.3.html#USRLOCALSHARE1
     - cp -r /cdrom/autoinstall/ansible /target/usr/local/share/
     - cp /cdrom/autoinstall/pyproject.toml /target/usr/local/share/
+    # The next two lines only work, if ubuntu-desktop-minimal is installed.
+    - mv /target/usr/libexec/gnome-initial-setup /target/usr/libexec/gnome-initial-setup-orig
+    - cp /cdrom/autoinstall/initial-login.sh /target/usr/libexec/gnome-initial-setup && chmod a+x /target/usr/libexec/gnome-initial-setup
+    - cp /cdrom/autoinstall/setup_yubikey_LUKS.sh /target/usr/local/bin && chmod +x /target/usr/local/bin/setup_yubikey_LUKS.sh
+
+  #### Install packages
+  # Per cloud-init, if packages are selected, it will apt-get update before
+  # installation.
+  # (https://cloudinit.readthedocs.io/en/latest/topics/examples.html#install-arbitrary-packages).
+  packages:
+    # Unfortunately, this section does not support `--no-install-recommends`.
+    # Alternative is to use it in late-commands with:
+    # `curtin in-target -- apt-get -y install --no-install-recommends ...`
+    - ubuntu-desktop-minimal

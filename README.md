@@ -7,7 +7,7 @@ The goals of this repository are:
 - Easily repeatable/restorable setups.
 
 Current directions followed:
-- Use preseeding for Debian 11 and autoinstall/cloud-init for Ubuntu 20.04, but only as much as needed for a base system installation.
+- Use preseeding for Debian 11 and autoinstall/cloud-init for Ubuntu 22.04, but only as much as needed for a base system installation.
     * preseeding is put into initrd for Debian 11, as it doesn't require to modify any of the grub menues and is found automatically.
     * autoinstall files (basically cloud-init user and meta data) could be passed in as separate disk for virtual machines. But for bare metal, the files have to be packed into the iso (which in turn can also be used for Virtual Machines).
 - Use Ansible playbooks to take it from there. This means servers need an sshd service configured or playbooks are run locally.

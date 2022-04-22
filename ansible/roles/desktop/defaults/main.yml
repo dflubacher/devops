@@ -1,6 +1,7 @@
 ---
 apt_pkgs_desktop:
   - tmux
+  - libusb-1.0-0-dev
   # Somehow vscode needed this package to display pyplots, as it otherwise uses
   # `agg` as the matplotlib backend:
   - python3-tk

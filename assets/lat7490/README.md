@@ -1,6 +1,6 @@
 # Dell Latitude 7490
-For the Dell Latitude 7490, a dual boot Ubuntu 20.04/Win11 is used:
-- Ubuntu 20.04 as main development environment.
+For the Dell Latitude 7490, a dual boot Ubuntu 22.04/Win11 is used:
+- Ubuntu 22.04 as main development environment.
 - Win 11 for win-based applications (e.g. CODESYS 3, PDF X-Change, etc.). The installation of Windows is not automated.
 ### Disk layout
 - 500 GB SATA SSD (TODO: replace)

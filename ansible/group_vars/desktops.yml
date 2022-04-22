@@ -13,5 +13,5 @@ become_user: root
 # https://stackoverflow.com/a/51973504
 ansible_python_interpreter: "{{ ansible_playbook_python }}"
 
-git_username: Ubuntu Focal
+git_username: Ubuntu Jammy
 git_email: ubuntu@email.com

@@ -3,7 +3,7 @@
 - Used in conjunction with a Compute Module 4 with 32GB eMMC, therefore an SD card flash is not needed.
 
 ## Boot method to eMMC directly
-- [Jeff Gerling's instructions](https://www.jeffgeerling.com/blog/2020/how-flash-raspberry-pi-os-compute-module-4-emmc-usbboot)
+- [Jeff Geerling's instructions](https://www.jeffgeerling.com/blog/2020/how-flash-raspberry-pi-os-compute-module-4-emmc-usbboot)
 
 1. Download OpenWRT image from the DFRobot site.
 2. On the DFRobot Board, toggle the DIP switch 'RPIBOOT' to 1 (disables eMMC boot).

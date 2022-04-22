@@ -15,7 +15,7 @@ echo
 echo "##### Installing pip for Python 3 with apt, sudo required:"
 # TODO: python3.8-venv is required, but there should be a solution:
 # https://github.com/python-poetry/poetry/issues/197
-# python3-venv for focal has a required dependency for python3.8-venv.
+# python3-venv for focal had a required dependency for python3.8-venv.
 # If the Python version was upgraded from the default, this might not work.
 sudo apt-get update && sudo apt-get -y install --no-install-recommends python3-pip python3-venv
 
