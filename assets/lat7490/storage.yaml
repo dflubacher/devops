@@ -5,11 +5,11 @@ merge_how:
   - name: dict
     settings: [no_replace, recurse_list]
 
-# Setup for Latitude 7490 with 477GiB Sata SSD:
+# Setup for Latitude 7490 with 932GiB Sata SSD:
 # - UEFI, 512M
 # - BOOT, 1024M
-# - CRYPT, 312G
-#    * root, 295G
+# - CRYPT, 475G
+#    * root, 468G
 #    * swap, remainder
 # - WIN partition, remainder
 #
@@ -23,73 +23,73 @@ autoinstall:
     config:
       #####   Disk   ##########################################################
       # Disk, serial takes precedence over path.
-      - id: sda
+      - id: nvme0n1
         type: disk
         ptable: gpt
         serial: ${DISK_ID_SERIAL}
-        # wwn: 
-        path: /dev/sda
+        # wwn:
+        path: /dev/nvme0n1
         name: maindisk
         wipe: superblock
         preserve: false
         grub_device: false
       #####   EFI partition   #################################################
-      - id: sda1
+      - id: nvme0n1p1
         type: partition
         number: 1
         name: bootefi-partition
         size: 512M
-        device: sda
+        device: nvme0n1
         wipe: superblock
         preserve: false
         grub_device: true
         flag: boot
-      - id: sda1-bootefi
+      - id: nvme0n1p1-bootefi
         type: format
-        volume: sda1
+        volume: nvme0n1p1
         fstype: fat32
         uuid: C12A7328-F81F-11D2-BA4B-00A0C93EC93B
         preserve: false
         label: BOOTEFI
       #####   BOOT partition   ################################################
-      - id: sda2
+      - id: nvme0n1p2
         type: partition
         number: 2
         name: boot-partition
         size: 1G
-        device: sda
+        device: nvme0n1
         wipe: superblock
         preserve: false
         grub_device: false
-      - id: sda2-boot
+      - id: nvme0n1p2-boot
         type: format
-        volume: sda2
+        volume: nvme0n1p2
         fstype: ext4
         preserve: false
         label: BOOT
       #####   Crypt container   ###############################################
-      - id: sda3
+      - id: nvme0n1p3
         type: partition
         number: 3
         name: crypt-partition
-        size: 312G
-        device: sda
+        size: 475G
+        device: nvme0n1
         wipe: superblock
         preserve: false
         grub_device: false
       - id: crypt-container
         type: dm_crypt
-        volume: sda3
-        dm_name: sda_crypt
+        volume: nvme0n1p3
+        dm_name: nvme_crypt
         key: ${BACKUP_CRYPT_KEY}
         preserve: false
       #####   Win partition   #################################################
-      - id: sda4
+      - id: nvme0n1p4
         type: partition
         number: 4
         name: win-partition
         size: -1
-        device: sda
+        device: nvme0n1
         wipe: superblock
         preserve: false
       #####   In Crypt container: LVM volume group   ##########################
@@ -102,7 +102,7 @@ autoinstall:
         type: lvm_partition
         name: root
         volgroup: volgroup0
-        size: 295G
+        size: 458G
         wipe: superblock
         preserve: false
       - id: root-fs
@@ -131,11 +131,11 @@ autoinstall:
       - id: boot-mount
         path: /boot
         type: mount
-        device: sda2-boot
+        device: nvme0n1p2-boot
       - id: bootefi-mount
         path: /boot/efi
         type: mount
-        device: sda1-bootefi
+        device: nvme0n1p1-bootefi
       - id: swap-mount
         path: none
         type: mount

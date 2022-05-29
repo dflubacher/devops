@@ -5,7 +5,7 @@ The goals are to set up:
 
 Usage:
 ```sh
-distros/debian/modify-installer.sh --vars_file assets/nuc8i7beh/vars-armed.env
+distros/debian/modify-installer.sh --vars_file assets/nuc8i7beh/vars-real.env
 ```
 NOTE: the OS specific `vars.env` is included by default (same folder as `modify-installer.sh`)
 
@@ -13,7 +13,7 @@ NOTE: the OS specific `vars.env` is included by default (same folder as `modify-
 Assuming thumb drive is `/dev/sdb` and iso was created in `/tmp`:
 ```sh
 # Wipe first sectors of USB stick.
-sudo dd if=/dev/zero of=/dev/sdb count=1000 bs=1M && sync
+sudo dd if=/dev/zero of=/dev/sdb count=100000 bs=2048 && sync
 # Write iso image.
-sudo dd if=/tmp/debian-amd64-preseed.iso  of=/dev/sdb  bs=32M status=progress && sync
+sudo dd if=/tmp/debian-amd64-preseed.iso  of=/dev/sdb  bs=2048 status=progress && sync
 ```

@@ -15,7 +15,7 @@
   become: true
   ansible.builtin.lineinfile:
     dest: "/etc/default/locale"
-    regexp: '{{ item.key }}.*'
+    regexp: "{{ item.key }}.*"
     line: '{{ item.key }}="{{ item.value }}"'
   loop: "{{ locales_default }}"
   notify: Reconfigure locales
@@ -48,7 +48,7 @@
   become: true
   replace:
     path: /etc/chrony/chrony.conf
-    regexp: '(^pool .*)'
+    regexp: "(^pool .*)"
     replace: '# \1'
 
 - name: Add Switzerland ntp servers to chronyd
@@ -56,7 +56,7 @@
   blockinfile:
     dest: /etc/chrony/chrony.conf
     # Inserted after last match of the commented lines.
-    insertafter: '^# pool.*'
+    insertafter: "^# pool.*"
     block: |
       pool 0.ch.pool.ntp.org iburst maxsources 3
       pool 1.ch.pool.ntp.org iburst
@@ -101,6 +101,23 @@
 #   command:
 #     cmd: dpkg-reconfigure -f noninteractive unattended-upgrades
 #     creates: /etc/apt/apt.conf.d/20auto-upgrades
+
+##### Update alternatives to use clang.
+- name: Updating alternatives to use clang
+  become: true
+  community.general.alternatives:
+    name: cc
+    link: /usr/bin/cc
+    path: /usr/bin/clang
+    priority: 100
+
+- name: Updating alternatives to use clang++
+  become: true
+  community.general.alternatives:
+    name: c++
+    link: /usr/bin/c++
+    path: /usr/bin/clang++
+    priority: 100
 
 ##### Bazel/Bazelisk.
 - name: Download latest bazel(isk) installer

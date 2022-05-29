@@ -93,55 +93,55 @@
     state: latest
 #
 #####   Duplicati backup   ####################################################
-# TODO: Ubuntu 22.04 dependency conflict.
-# # https://duplicati.readthedocs.io/en/latest/02-installation/
-# - name: Install gpg key for duplicati
-#   become: true
-#   ansible.builtin.apt_key:
-#     keyserver: keyserver.ubuntu.com
-#     id: 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
+# TODO: Ubuntu 22.04: no jammy release file as of 2022-05-28.
+# https://duplicati.readthedocs.io/en/latest/02-installation/
+- name: Install gpg key for duplicati
+  become: true
+  ansible.builtin.apt_key:
+    keyserver: keyserver.ubuntu.com
+    id: 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
 
-# - name: Enable auto-updating using the system's package manager for mono
-#   become: true
-#   ansible.builtin.apt_repository:
-#     repo: deb [arch=amd64] https://download.mono-project.com/repo/ubuntu stable-jammy main
-#     state: present
-#     filename: mono-official-stable
+- name: Enable auto-updating using the system's package manager for mono
+  become: true
+  ansible.builtin.apt_repository:
+    repo: deb [arch=amd64] https://download.mono-project.com/repo/ubuntu stable-focal main
+    state: present
+    filename: mono-official-stable
 
-# - name: Install mono and other prerequisites for duplicati
-#   become: true
-#   apt:
-#     pkg:
-#       - mono-devel
-#       - gtk-sharp2
-#       - libappindicator0.1-cil
-#       - libmono-2.0-1
-#       - apt-transport-https
-#       - nano
-#       - git-core
-#       - software-properties-common
-#       - dirmngr
-#     state: latest
-#     update_cache: yes
+- name: Install mono and other prerequisites for duplicati
+  become: true
+  apt:
+    pkg:
+      - mono-devel
+      - gtk-sharp2
+      - libappindicator0.1-cil
+      - libmono-2.0-1
+      - apt-transport-https
+      - nano
+      - git-core
+      - software-properties-common
+      - dirmngr
+    state: latest
+    update_cache: yes
 
-# ##### Download duplicati deb
-# - name: Download Duplicati installer
-#   become: true
-#   apt:
-#     deb: https://updates.duplicati.com/beta/duplicati_2.0.6.3-1_all.deb
+##### Download duplicati deb
+- name: Download Duplicati installer
+  become: true
+  apt:
+    deb: https://updates.duplicati.com/beta/duplicati_2.0.6.3-1_all.deb
 
-# - name: Set Duplicati DAEMON_OPTS
-#   become: true
-#   ansible.builtin.lineinfile:
-#     dest: /etc/default/duplicati
-#     regexp: "^DAEMON_OPTS="
-#     line: 'DAEMON_OPTS="--webservice-interface=any --webservice-port=8200 --portable-mode"'
-#     state: present
+- name: Set Duplicati DAEMON_OPTS
+  become: true
+  ansible.builtin.lineinfile:
+    dest: /etc/default/duplicati
+    regexp: "^DAEMON_OPTS="
+    line: 'DAEMON_OPTS="--webservice-interface=any --webservice-port=8200 --portable-mode"'
+    state: present
 
-# - name: Start and enable Duplicati service
-#   become: true
-#   systemd:
-#     name: duplicati
-#     state: started
-#     enabled: yes
-#     daemon-reload: yes
+- name: Start and enable Duplicati service
+  become: true
+  systemd:
+    name: duplicati
+    state: started
+    enabled: yes
+    daemon-reload: yes

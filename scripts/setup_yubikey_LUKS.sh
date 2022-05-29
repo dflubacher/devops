@@ -82,7 +82,7 @@ lsblk
 done
 
 while ! $(sudo cryptsetup isLuks ${DEV_CRYPT}); do
-  read -ep "##### Enter the device (e.g. /dev/sda3) that contains the crypt partition to enroll the yubikey for: " DEV_CRYPT </dev/tty
+  read -ep "##### Enter the device (e.g. /dev/sda3 or /dev/nvme0n1p3) that contains the crypt partition to enroll the yubikey for: " DEV_CRYPT </dev/tty
   # sudo cryptsetup isLuks ${DEV_CRYPT} && echo "is luks"
 done
 

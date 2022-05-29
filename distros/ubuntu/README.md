@@ -117,9 +117,9 @@ This is obviously asset specific, therefore not done per default.
 Assuming thumb drive is `/dev/sdb` and iso was created in `/tmp`:
 ```sh
 # Wipe first sectors of USB stick.
-sudo dd if=/dev/zero of=/dev/sdb count=1000 bs=1M && sync
+sudo dd if=/dev/zero of=/dev/sdb count=100000 bs=2048 && sync
 # Write iso image.
-sudo dd if=/tmp/ubuntu-amd64-autoinstall.iso of=/dev/sdb bs=32M status=progress && sync
+sudo dd if=/tmp/ubuntu-amd64-autoinstall.iso of=/dev/sdb bs=2048 status=progress && sync
 ```
 
 ### Yubikey setup

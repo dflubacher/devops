@@ -42,5 +42,12 @@ curl -sSL https://install.python-poetry.org | python3 -
 
 popd
 
-# Either logout/login or source ${HOME}/.profile to set up poetry in the
+# Either logout/login or source ${HOME}/.(z)profile to set up poetry in the
 # current shell.
+# TODO: Ubuntu 22.04, zprofile did not include /usr/.local/bin, therefore
+#       poetry wasn't found. Include 
+#       # set PATH so it includes user's private bin if it exists
+#       if [ -d "$HOME/.local/bin" ] ; then
+#           PATH="$HOME/.local/bin:$PATH"
+#       fi
+#       in ~/.zprofile

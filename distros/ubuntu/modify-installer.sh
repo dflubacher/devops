@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Create Ubuntu installer using autoinstall. (20.04 LTS)
+# Create Ubuntu installer using autoinstall. (22.04 LTS)
 # This script
 #   1. downloads an Ubuntu 22.04 server iso.
 #   2. copies autoinstall/cloud-init files into the installer (./autoinstall).
@@ -46,7 +46,7 @@ declare -r SCRIPT_DIR=$(dirname "$0") > /dev/null
 
 # URL of the original installer.
 # ISO_WEBLINK="http://releases.ubuntu.csg.uzh.ch/ubuntu/jammy/ubuntu-22.04-live-server-amd64.iso"
-ISO_WEBLINK="https://cdimage.ubuntu.com/ubuntu-server/daily-live/current/jammy-live-server-amd64.iso"
+ISO_WEBLINK="https://cdimage.ubuntu.com/ubuntu-server/jammy/daily-live/current/jammy-live-server-amd64.iso"
 
 # Working directories and output.
 ISO_ORIG=/tmp/ubuntu-amd64.iso
@@ -359,11 +359,29 @@ main() {
       # The EFI partition is no longer (>=22.04) an .img file in boot/grub.
       # Instead it needs to be extracted, see https://askubuntu.com/a/1403669.
       # See NOTE above for info about original iso.
-      # Output shows:
-      # -append_partition 2 28732ac11ff8d211ba4b00a0c93ec93b --interval:local_fs:2855516d-2864011d::'/tmp/ubuntu-amd64.iso'
-      # blocksize of 512 is critical, with 1 it does not work.
-      dd if="${ISO_ORIG}" bs=512 skip=2855516 count=8496 of="${TMP_SCRATCH_DIR}/efi.img"
+      # Output shows something like:
+      #    EFI image start and size: 713879 * 2048 , 8496 * 512
+      #    -append_partition 2 28732ac11ff8d211ba4b00a0c93ec93b --interval:local_fs:2855516d-2864011d::'ubuntu-amd64.iso'
 
+      # Assumption for parsing:
+      #  1. xorriso outputs the following scheme:
+      #     `libisofs: NOTE : EFI image start and size: 713879 * 2048 , 8496 * 512`
+      #  2. block size of start is always 2048
+      #  3. and block size of size is always 512
+      # TODO: check if there is a more stable way to extract these infos.
+      EFI_INFO=$(xorriso -indev "${ISO_ORIG}" -report_el_torito as_mkisofs 2>&1 | grep "EFI image start and size" | tr -d "[:space:]" | cut -f4 -d:)
+
+      EFI_INFO_START=$(echo "${EFI_INFO}" | cut -f1 -d, |  cut -f1 -d\*)
+      EFI_INFO_SIZE=$(echo "${EFI_INFO}" | cut -f2 -d, |  cut -f1 -d\*)
+
+      # To manually extract it we need:
+      #    - skip to start size (713879 * 2048)
+      #    - and extract 8496 * 512
+      # `dd` uses one block size, hence use 512 and multiply start with 4.
+      # i.e. 713879 * 4 = 2855516
+      # dd if="${ISO_ORIG}" bs=512 skip=2855516 count=8496 of="${TMP_SCRATCH_DIR}/efi.img"
+      dd if="${ISO_ORIG}" bs=512 skip=$(("${EFI_INFO_START}" * 4)) count="${EFI_INFO_SIZE}" of="${TMP_SCRATCH_DIR}/efi.img"
+      echo $(("${EFI_INFO_START}" * 4))
       echo
       echo "## 3. Creating new iso..."
       
@@ -381,7 +399,7 @@ main() {
             -no-emul-boot -boot-load-size 4 -boot-info-table --grub2-boot-info \
          -eltorito-alt-boot \
          -e '--interval:appended_partition_2:::' \
-            -no-emul-boot -boot-load-size 8496 -isohybrid-gpt-basdat \
+            -no-emul-boot -boot-load-size 8496 \
          -o "${ISO_NEW}" \
          "${ISO_FILES}"
 

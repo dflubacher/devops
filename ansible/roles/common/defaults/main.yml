@@ -6,7 +6,7 @@ apt_pkgs_common:
   - ca-certificates
   - gnupg2
   - lldb
-  - gcc
+  - clang
   - libc6-dev
   - unattended-upgrades
   - git
