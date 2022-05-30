@@ -34,7 +34,26 @@ Followed [this blog](https://dellwindowsreinstallationguide.com/creating-a-windo
 6. mkdir `sources` in `BOOT` and copy file `boot.wim` to `BOOT/sources`
 7. Copy everything from mounted image to `INSTALL`
 
+Update Ubuntu 22.04 (Kernel 5.15):
+1. Use gparted to create gpt partition table
+2. format ntfs and label 'Win11USB202205' (or similar)
+3. Mount iso file with Disk Mounter
+4. Copy everything to ntfs partition.
+
 Done. Install from USB (using partition 2 worked). Probably using rufus on another Windows machine might be a better idea.
+
+#### Windows clock
+It seems that Ubuntu per default uses UTC for the HW RTC, while Windows uses local time. Obviously, if both automatically sync the time, this causes problems.
+
+Therefore:
+- Use UTC for clock.
+- Disable time synchronization in Windows (right-click clock and `Adjust Time & Date`), and uncheck corresponding slider.
+- Open registry:
+    * In folder `Computer\HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\TimeZoneInformation`
+    * New `DWORD`
+    * Key: `RealTimeIsUniversal`
+    * Modify value: 1 (hex)
+- [Reference](https://ubuntuhandbook.org/index.php/2021/06/incorrect-time-windows-11-dual-boot-ubuntu/)
 
 #### Grub
 Two enable the grub menu for the dual boot setup, open the one-time boot (F12) menu after installing Windows and select ubuntu to boot.
@@ -42,4 +61,13 @@ Once logged in, update the grub menu
 ```sh
 sudo update-grub
 ```
-This should find both ubuntu and Windows OS. However check the boot sequence in the Boot setup and make sure that Ubuntu is first, otherwise no Grub menu will show up.
+This should find both ubuntu and Windows OS. 
+NOTE: Check the boot sequence in the Boot setup and make sure that Ubuntu is first, otherwise no Grub menu will show up.
+
+TODO: Ubuntu 22.04 and its Grub 2.06 disabled the OS prober, and it therefore didn't detect Windows anymore. [Found this workaround](https://www.omgubuntu.co.uk/2021/12/grub-doesnt-detect-windows-linux-distros-fix), but it seems not to be the best solution.
+```sh
+Memtest86+ needs a 16-bit boot, that is not available on EFI, exiting
+Warning: os-prober will not be executed to detect other bootable partitions.
+Systems on them will not be added to the GRUB boot configuration.
+Check GRUB_DISABLE_OS_PROBER documentation entry.
+```
