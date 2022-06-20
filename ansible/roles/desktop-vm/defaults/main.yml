@@ -1,0 +1,14 @@
+---
+apt_pkgs_desktop:
+  - tmux
+
+
+vs_code_extensions_to_install:
+  - "ms-vscode.cpptools"
+  - "ms-python.python"
+  - "ms-python.vscode-pylance"
+  # - "ms-kubernetes-tools.vscode-kubernetes-tools"
+  - "ms-azuretools.vscode-docker"
+  - "bazelbuild.vscode-bazel"
+  - "redhat.ansible"
+  - "eamodio.gitlens"

@@ -1,0 +1,59 @@
+---
+#####   Google Chrome   #######################################################
+# TODO: somehow there still ends up an apt-repository without `signed-by`
+#       in google-chrome.list.
+- name: Install Chrome apt repository and signing key (add apt signing key to keyring file)
+  become: true
+  ansible.builtin.apt_key:
+    url: https://dl-ssl.google.com/linux/linux_signing_key.pub
+    keyring: /etc/apt/trusted.gpg.d/google-chrome.gpg
+
+- name: Enable auto-updating Chrome using the system's package manager
+  become: true
+  ansible.builtin.apt_repository:
+    repo: deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main
+    state: present
+    filename: google-chrome
+
+- name: Install Google Chrome
+  become: true
+  apt:
+    pkg:
+      - google-chrome-stable
+    state: latest
+    update_cache: yes
+
+#####   VS Code   #############################################################
+- name: Install VS code apt repository and signing key (add apt signing key to keyring file)
+  become: true
+  ansible.builtin.apt_key:
+    url: https://packages.microsoft.com/keys/microsoft.asc
+    keyring: /etc/apt/trusted.gpg.d/packages.microsoft.gpg
+
+- name: Enable auto-updating VS code using the system's package manager
+  become: true
+  ansible.builtin.apt_repository:
+    repo: deb [arch=amd64,arm64,armhf signed-by=/etc/apt/trusted.gpg.d/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main
+    state: present
+    filename: vscode
+
+- name: Install VS code
+  become: true
+  apt:
+    pkg:
+      - apt-transport-https
+      - code
+    state: latest
+    update_cache: yes
+
+- name: Check installed VS code extensions
+  command:
+    cmd: code --list-extensions
+  register: vs_code_extensions_installed
+
+# VS code recommends to install extensions per user.
+- name: Install VS code extensions
+  command:
+    cmd: "code --install-extension {{ item }}"
+  loop: "{{ vs_code_extensions_to_install }}"
+  when: item not in vs_code_extensions_installed.stdout

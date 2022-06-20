@@ -2,6 +2,7 @@
 qemu_lat7490 ansible_host=localhost
 qemu_xps8300 ansible_host=localhost
 qemu_x201 ansible_host=localhost
+vb_x1 ansible_host=localhost
 
 [servers]
 qemu_dl380g9lff ansible_host=192.168.122.42

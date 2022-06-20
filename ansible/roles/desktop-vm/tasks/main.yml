@@ -1,0 +1,24 @@
+---
+
+- name: Install apt packages list
+  become: true
+  apt:
+    pkg: "{{ apt_pkgs_desktop }}"
+    state: latest
+    update_cache: yes
+
+- name: Deny everything and enable ufw
+  become: true
+  community.general.ufw:
+    state: enabled
+    policy: deny
+  notify: Enable ufw
+
+- name: Add GUI applications
+  include_tasks: ./gui_apps.yml
+
+# https://askubuntu.com/a/1193510
+- name: Set icons for favorite bar
+  community.general.dconf:
+    key: "/org/gnome/shell/favorite-apps"
+    value: "['org.gnome.Nautilus.desktop', 'google-chrome.desktop', 'code.desktop']"
