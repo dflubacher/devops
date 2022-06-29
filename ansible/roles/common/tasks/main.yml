@@ -255,3 +255,32 @@
     value: 'meld "$LOCAL" "$MERGED" "$REMOTE" --output "$MERGED"'
     # value: 'meld "$LOCAL" "$BASE" "$REMOTE" --output "$MERGED"'
     scope: global
+
+##### Docker.
+- name: Download Docker installer
+  become: true
+  get_url:
+    url: https://get.docker.com
+    dest: /tmp/docker-installer
+    mode: "0755"
+
+# TODO: Is the executable always at this location?
+- name: Execute the Docker installer
+  become: true
+  command:
+    cmd: /tmp/docker-installer
+  args:
+    creates: /usr/bin/docker
+
+- name: Add current user to Docker group
+  become: true
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+
+- name: Enable Docker daemon
+  become: true
+  service:
+    name: docker
+    state: started
